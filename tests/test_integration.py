@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 # Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from parser import run_scraper, run_scraper_with_callback
 from step_types import TabTemplate, BaseStep, PaginationConfig, NextButtonConfig
@@ -33,18 +33,14 @@ class TestCompleteNewsScrapingScenario:
             TabTemplate(
                 tab="news_scraper",
                 initSteps=[
-                    BaseStep(
-                        id="navigate",
-                        action="navigate",
-                        value=test_page_url
-                    ),
+                    BaseStep(id="navigate", action="navigate", value=test_page_url),
                     BaseStep(
                         id="search_news",
                         action="input",
                         object_type="id",
                         object="search-box",
-                        value="technology"
-                    )
+                        value="technology",
+                    ),
                 ],
                 perPageSteps=[
                     BaseStep(
@@ -59,7 +55,7 @@ class TestCompleteNewsScrapingScenario:
                                 object_type="tag",
                                 object="h2",
                                 key="title",
-                                data_type="text"
+                                data_type="text",
                             ),
                             BaseStep(
                                 id="get_content",
@@ -67,7 +63,7 @@ class TestCompleteNewsScrapingScenario:
                                 object_type="tag",
                                 object="p",
                                 key="content",
-                                data_type="text"
+                                data_type="text",
                             ),
                             BaseStep(
                                 id="get_link",
@@ -75,7 +71,7 @@ class TestCompleteNewsScrapingScenario:
                                 object_type="tag",
                                 object="a/@href",
                                 key="link",
-                                data_type="attribute"
+                                data_type="attribute",
                             ),
                             BaseStep(
                                 id="get_nested_content",
@@ -83,39 +79,36 @@ class TestCompleteNewsScrapingScenario:
                                 object_type="class",
                                 object="nested-item",
                                 key="nested_content",
-                                data_type="text"
-                            )
-                        ]
+                                data_type="text",
+                            ),
+                        ],
                     ),
                     BaseStep(
                         id="save_page_pdf",
                         action="savePDF",
                         value=str(output_dir / "page_{{i}}.pdf"),
-                        key="page_pdf"
-                    )
+                        key="page_pdf",
+                    ),
                 ],
                 pagination=PaginationConfig(
                     strategy="next",
-                    nextButton=NextButtonConfig(
-                        object_type="id",
-                        object="next-page"
-                    ),
-                    maxPages=2
-                )
+                    nextButton=NextButtonConfig(object_type="id", object="next-page"),
+                    maxPages=2,
+                ),
             )
         ]
 
         results = await run_scraper(templates)
-        
+
         # We expect at least 4 results (first page)
         assert len(results) >= 4
-        
+
         # Check first article
         assert "title" in results[0]
         assert "content" in results[0]
         assert "link" in results[0]
         assert "nested_content" in results[0]
-        
+
         # Check that we have articles from the first page
         assert results[0]["title"] == "First Article Title"
 
@@ -126,11 +119,7 @@ class TestCompleteNewsScrapingScenario:
             TabTemplate(
                 tab="streaming_test",
                 steps=[
-                    BaseStep(
-                        id="navigate",
-                        action="navigate",
-                        value=test_page_url
-                    ),
+                    BaseStep(id="navigate", action="navigate", value=test_page_url),
                     BaseStep(
                         id="collect_articles",
                         action="foreach",
@@ -143,7 +132,7 @@ class TestCompleteNewsScrapingScenario:
                                 object_type="tag",
                                 object="h2",
                                 key="title",
-                                data_type="text"
+                                data_type="text",
                             ),
                             BaseStep(
                                 id="get_content",
@@ -151,29 +140,32 @@ class TestCompleteNewsScrapingScenario:
                                 object_type="tag",
                                 object="p",
                                 key="content",
-                                data_type="text"
-                            )
-                        ]
-                    )
-                ]
+                                data_type="text",
+                            ),
+                        ],
+                    ),
+                ],
             )
         ]
 
         processed_results = []
-        
+
         async def on_result(result, index):
             # Simulate real-time processing
             from datetime import datetime
+
             processed = {
                 **result,
                 "processed_at": datetime.now().isoformat(),
                 "index": index,
-                "word_count": len(result.get("content", "").split()) if result.get("content") else 0
+                "word_count": (
+                    len(result.get("content", "").split()) if result.get("content") else 0
+                ),
             }
             processed_results.append(processed)
 
         await run_scraper_with_callback(templates, on_result)
-        
+
         assert len(processed_results) == 4
         assert "processed_at" in processed_results[0]
         assert "word_count" in processed_results[0]
@@ -186,23 +178,19 @@ class TestCompleteNewsScrapingScenario:
             TabTemplate(
                 tab="form_interaction_test",
                 steps=[
-                    BaseStep(
-                        id="navigate",
-                        action="navigate",
-                        value=test_page_url
-                    ),
+                    BaseStep(id="navigate", action="navigate", value=test_page_url),
                     BaseStep(
                         id="fill_search",
                         action="input",
                         object_type="id",
                         object="search-box",
-                        value="automation testing"
+                        value="automation testing",
                     ),
                     BaseStep(
                         id="select_category",
                         action="click",
                         object_type="id",
-                        object="category-select"
+                        object="category-select",
                     ),
                     BaseStep(
                         id="wait_for_dynamic_content",
@@ -211,13 +199,13 @@ class TestCompleteNewsScrapingScenario:
                         object="dynamic-content",
                         key="dynamic_content",
                         data_type="text",
-                        wait=1500
+                        wait=1500,
                     ),
                     BaseStep(
                         id="show_hidden_content",
                         action="click",
                         object_type="id",
-                        object="show-hidden"
+                        object="show-hidden",
                     ),
                     BaseStep(
                         id="get_hidden_content",
@@ -225,7 +213,7 @@ class TestCompleteNewsScrapingScenario:
                         object_type="id",
                         object="hidden-content",
                         key="hidden_content",
-                        data_type="text"
+                        data_type="text",
                     ),
                     BaseStep(
                         id="get_form_data",
@@ -233,14 +221,14 @@ class TestCompleteNewsScrapingScenario:
                         object_type="id",
                         object="search-box",
                         key="search_value",
-                        data_type="value"
-                    )
-                ]
+                        data_type="value",
+                    ),
+                ],
             )
         ]
 
         results = await run_scraper(templates)
-        
+
         assert len(results) == 1
         assert results[0]["search_value"] == "automation testing"
         assert "hidden_content" in results[0]
@@ -251,7 +239,7 @@ class TestCompleteNewsScrapingScenario:
         """Should handle file operations and downloads"""
         download_dir = tmp_path / "integration-downloads"
         output_dir = tmp_path / "integration-output"
-        
+
         download_dir.mkdir()
         output_dir.mkdir()
 
@@ -259,25 +247,21 @@ class TestCompleteNewsScrapingScenario:
             TabTemplate(
                 tab="file_operations_test",
                 steps=[
-                    BaseStep(
-                        id="navigate",
-                        action="navigate",
-                        value=test_page_url
-                    ),
+                    BaseStep(id="navigate", action="navigate", value=test_page_url),
                     BaseStep(
                         id="get_page_title",
                         action="data",
                         object_type="id",
                         object="main-title",
                         key="page_title",
-                        data_type="text"
-                    )
-                ]
+                        data_type="text",
+                    ),
+                ],
             )
         ]
 
         results = await run_scraper(templates)
-        
+
         assert len(results) == 1
         assert results[0]["page_title"] == "StepWright Test Page"
 
@@ -288,18 +272,14 @@ class TestCompleteNewsScrapingScenario:
             TabTemplate(
                 tab="proxy_config_test",
                 steps=[
-                    BaseStep(
-                        id="navigate",
-                        action="navigate",
-                        value=test_page_url
-                    ),
+                    BaseStep(id="navigate", action="navigate", value=test_page_url),
                     BaseStep(
                         id="get_title",
                         action="data",
                         object_type="id",
                         object="main-title",
                         key="title",
-                        data_type="text"
+                        data_type="text",
                     ),
                     BaseStep(
                         id="get_user_agent",
@@ -307,28 +287,32 @@ class TestCompleteNewsScrapingScenario:
                         object_type="tag",
                         object="title",
                         key="page_title",
-                        data_type="text"
-                    )
-                ]
+                        data_type="text",
+                    ),
+                ],
             )
         ]
 
-        from step_types import RunOptions
-        results = await run_scraper(templates, RunOptions(
-            browser={
-                "headless": True,
-                "args": [
-                    "--no-sandbox",
-                    "--disable-setuid-sandbox",
-                    "--disable-dev-shm-usage",
-                    "--disable-accelerated-2d-canvas",
-                    "--no-first-run",
-                    "--no-zygote",
-                    "--disable-gpu"
-                ]
-            }
-        ))
-        
+        from src.step_types import RunOptions
+
+        results = await run_scraper(
+            templates,
+            RunOptions(
+                browser={
+                    "headless": True,
+                    "args": [
+                        "--no-sandbox",
+                        "--disable-setuid-sandbox",
+                        "--disable-dev-shm-usage",
+                        "--disable-accelerated-2d-canvas",
+                        "--no-first-run",
+                        "--no-zygote",
+                        "--disable-gpu",
+                    ],
+                }
+            ),
+        )
+
         assert len(results) == 1
         assert results[0]["title"] == "StepWright Test Page"
         assert results[0]["page_title"] == "StepWright Test Page"

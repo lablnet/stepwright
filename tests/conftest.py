@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 # Add src to path for all tests
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
 @pytest.fixture(scope="session")
@@ -25,6 +25,4 @@ def test_page_html_path(test_data_dir):
 # Configure pytest-asyncio
 def pytest_configure(config):
     """Configure pytest"""
-    config.addinivalue_line(
-        "markers", "asyncio: mark test as an async test"
-    )
+    config.addinivalue_line("markers", "asyncio: mark test as an async test")

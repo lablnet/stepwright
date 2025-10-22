@@ -4,14 +4,20 @@
 
 import pytest
 import sys
-import os
 from pathlib import Path
 
 # Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from parser import run_scraper, run_scraper_with_callback
-from step_types import TabTemplate, BaseStep, RunOptions, PaginationConfig, NextButtonConfig, ScrollConfig
+from src.parser import run_scraper, run_scraper_with_callback
+from src.step_types import (
+    TabTemplate,
+    BaseStep,
+    RunOptions,
+    PaginationConfig,
+    NextButtonConfig,
+    ScrollConfig,
+)
 
 
 @pytest.fixture
@@ -31,18 +37,14 @@ class TestRunScraper:
             TabTemplate(
                 tab="basic_test",
                 steps=[
-                    BaseStep(
-                        id="navigate",
-                        action="navigate",
-                        value=test_page_url
-                    ),
+                    BaseStep(id="navigate", action="navigate", value=test_page_url),
                     BaseStep(
                         id="get_title",
                         action="data",
                         object_type="id",
                         object="main-title",
                         key="title",
-                        data_type="text"
+                        data_type="text",
                     ),
                     BaseStep(
                         id="get_subtitle",
@@ -50,14 +52,14 @@ class TestRunScraper:
                         object_type="id",
                         object="subtitle",
                         key="subtitle",
-                        data_type="text"
-                    )
-                ]
+                        data_type="text",
+                    ),
+                ],
             )
         ]
 
         results = await run_scraper(templates)
-        
+
         assert len(results) == 1
         assert results[0]["title"] == "StepWright Test Page"
         assert results[0]["subtitle"] == "A comprehensive test page for web scraping functionality"
@@ -69,17 +71,13 @@ class TestRunScraper:
             TabTemplate(
                 tab="form_test",
                 steps=[
-                    BaseStep(
-                        id="navigate",
-                        action="navigate",
-                        value=test_page_url
-                    ),
+                    BaseStep(id="navigate", action="navigate", value=test_page_url),
                     BaseStep(
                         id="input_search",
                         action="input",
                         object_type="id",
                         object="search-box",
-                        value="test search term"
+                        value="test search term",
                     ),
                     BaseStep(
                         id="get_search_value",
@@ -87,14 +85,14 @@ class TestRunScraper:
                         object_type="id",
                         object="search-box",
                         key="search_value",
-                        data_type="value"
-                    )
-                ]
+                        data_type="value",
+                    ),
+                ],
             )
         ]
 
         results = await run_scraper(templates)
-        
+
         assert len(results) == 1
         assert results[0]["search_value"] == "test search term"
 
@@ -105,11 +103,7 @@ class TestRunScraper:
             TabTemplate(
                 tab="foreach_test",
                 steps=[
-                    BaseStep(
-                        id="navigate",
-                        action="navigate",
-                        value=test_page_url
-                    ),
+                    BaseStep(id="navigate", action="navigate", value=test_page_url),
                     BaseStep(
                         id="collect_articles",
                         action="foreach",
@@ -122,24 +116,24 @@ class TestRunScraper:
                                 object_type="tag",
                                 object="h2",
                                 key="title",
-                                data_type="text"
+                                data_type="text",
                             ),
-                        BaseStep(
-                            id="get_article_link",
-                            action="data",
-                            object_type="tag",
-                            object="a/@href",
-                            key="link",
-                            data_type="attribute"
-                        )
-                        ]
-                    )
-                ]
+                            BaseStep(
+                                id="get_article_link",
+                                action="data",
+                                object_type="tag",
+                                object="a/@href",
+                                key="link",
+                                data_type="attribute",
+                            ),
+                        ],
+                    ),
+                ],
             )
         ]
 
         results = await run_scraper(templates)
-        
+
         assert len(results) == 4  # 4 articles
         assert "title" in results[0]
         assert "link" in results[0]
@@ -151,13 +145,7 @@ class TestRunScraper:
         templates = [
             TabTemplate(
                 tab="pagination_test",
-                initSteps=[
-                    BaseStep(
-                        id="navigate",
-                        action="navigate",
-                        value=test_page_url
-                    )
-                ],
+                initSteps=[BaseStep(id="navigate", action="navigate", value=test_page_url)],
                 perPageSteps=[
                     BaseStep(
                         id="get_page_title",
@@ -165,22 +153,19 @@ class TestRunScraper:
                         object_type="tag",
                         object="h2",
                         key="page_title",
-                        data_type="text"
+                        data_type="text",
                     )
                 ],
                 pagination=PaginationConfig(
                     strategy="next",
-                    nextButton=NextButtonConfig(
-                        object_type="id",
-                        object="next-page"
-                    ),
-                    maxPages=2
-                )
+                    nextButton=NextButtonConfig(object_type="id", object="next-page"),
+                    maxPages=2,
+                ),
             )
         ]
 
         results = await run_scraper(templates)
-        
+
         # We expect at least 1 result (first page)
         assert len(results) >= 1
         assert "page_title" in results[0]
@@ -191,41 +176,26 @@ class TestRunScraper:
         templates = [
             TabTemplate(
                 tab="scroll_test",
-                initSteps=[
-                    BaseStep(
-                        id="navigate",
-                        action="navigate",
-                        value=test_page_url
-                    )
-                ],
+                initSteps=[BaseStep(id="navigate", action="navigate", value=test_page_url)],
                 perPageSteps=[
-                    BaseStep(
-                        id="scroll_action",
-                        action="scroll",
-                        value="500"
-                    ),
+                    BaseStep(id="scroll_action", action="scroll", value="500"),
                     BaseStep(
                         id="get_article_count",
                         action="data",
                         object_type="class",
                         object="article",
                         key="article_count",
-                        data_type="text"
-                    )
+                        data_type="text",
+                    ),
                 ],
                 pagination=PaginationConfig(
-                    strategy="scroll",
-                    scroll=ScrollConfig(
-                        offset=500,
-                        delay=100
-                    ),
-                    maxPages=2
-                )
+                    strategy="scroll", scroll=ScrollConfig(offset=500, delay=100), maxPages=2
+                ),
             )
         ]
 
         results = await run_scraper(templates)
-        
+
         assert len(results) == 2  # 2 scroll iterations
 
     @pytest.mark.asyncio
@@ -238,23 +208,19 @@ class TestRunScraper:
             TabTemplate(
                 tab="pdf_test",
                 steps=[
-                    BaseStep(
-                        id="navigate",
-                        action="navigate",
-                        value=test_page_url
-                    ),
+                    BaseStep(id="navigate", action="navigate", value=test_page_url),
                     BaseStep(
                         id="save_pdf",
                         action="savePDF",
                         value=str(output_dir / "test-page.pdf"),
-                        key="pdf_file"
-                    )
-                ]
+                        key="pdf_file",
+                    ),
+                ],
             )
         ]
 
         results = await run_scraper(templates)
-        
+
         assert len(results) == 1
         assert "pdf_file" in results[0]
 
@@ -265,31 +231,23 @@ class TestRunScraper:
             TabTemplate(
                 tab="proxy_test",
                 steps=[
-                    BaseStep(
-                        id="navigate",
-                        action="navigate",
-                        value=test_page_url
-                    ),
+                    BaseStep(id="navigate", action="navigate", value=test_page_url),
                     BaseStep(
                         id="get_title",
                         action="data",
                         object_type="id",
                         object="main-title",
                         key="title",
-                        data_type="text"
-                    )
-                ]
+                        data_type="text",
+                    ),
+                ],
             )
         ]
 
         # Note: This test might fail if proxy server doesn't exist
         # We'll use headless without actual proxy for testing
-        results = await run_scraper(templates, RunOptions(
-            browser={
-                "headless": True
-            }
-        ))
-        
+        results = await run_scraper(templates, RunOptions(browser={"headless": True}))
+
         assert len(results) == 1
         assert results[0]["title"] == "StepWright Test Page"
 
@@ -300,30 +258,26 @@ class TestRunScraper:
             TabTemplate(
                 tab="browser_options_test",
                 steps=[
-                    BaseStep(
-                        id="navigate",
-                        action="navigate",
-                        value=test_page_url
-                    ),
+                    BaseStep(id="navigate", action="navigate", value=test_page_url),
                     BaseStep(
                         id="get_title",
                         action="data",
                         object_type="id",
                         object="main-title",
                         key="title",
-                        data_type="text"
-                    )
-                ]
+                        data_type="text",
+                    ),
+                ],
             )
         ]
 
-        results = await run_scraper(templates, RunOptions(
-            browser={
-                "headless": True,
-                "args": ["--no-sandbox", "--disable-setuid-sandbox"]
-            }
-        ))
-        
+        results = await run_scraper(
+            templates,
+            RunOptions(
+                browser={"headless": True, "args": ["--no-sandbox", "--disable-setuid-sandbox"]}
+            ),
+        )
+
         assert len(results) == 1
         assert results[0]["title"] == "StepWright Test Page"
 
@@ -338,11 +292,7 @@ class TestRunScraperWithCallback:
             TabTemplate(
                 tab="callback_test",
                 steps=[
-                    BaseStep(
-                        id="navigate",
-                        action="navigate",
-                        value=test_page_url
-                    ),
+                    BaseStep(id="navigate", action="navigate", value=test_page_url),
                     BaseStep(
                         id="collect_articles",
                         action="foreach",
@@ -355,21 +305,21 @@ class TestRunScraperWithCallback:
                                 object_type="tag",
                                 object="h2",
                                 key="title",
-                                data_type="text"
+                                data_type="text",
                             )
-                        ]
-                    )
-                ]
+                        ],
+                    ),
+                ],
             )
         ]
 
         results = []
-        
+
         async def on_result(result, index):
             results.append({**result, "index": index})
 
         await run_scraper_with_callback(templates, on_result)
-        
+
         assert len(results) == 4  # 4 articles
         assert results[0]["title"] == "First Article Title"
         assert results[0]["index"] == 0
@@ -381,17 +331,13 @@ class TestRunScraperWithCallback:
             TabTemplate(
                 tab="error_test",
                 steps=[
-                    BaseStep(
-                        id="navigate",
-                        action="navigate",
-                        value=test_page_url
-                    ),
+                    BaseStep(id="navigate", action="navigate", value=test_page_url),
                     BaseStep(
                         id="click_nonexistent",
                         action="click",
                         object_type="id",
                         object="non-existent-element",
-                        terminateonerror=False
+                        terminateonerror=False,
                     ),
                     BaseStep(
                         id="get_title",
@@ -399,14 +345,14 @@ class TestRunScraperWithCallback:
                         object_type="id",
                         object="main-title",
                         key="title",
-                        data_type="text"
-                    )
-                ]
+                        data_type="text",
+                    ),
+                ],
             )
         ]
 
         results = await run_scraper(templates)
-        
+
         assert len(results) == 1
         assert results[0]["title"] == "StepWright Test Page"
 
@@ -424,31 +370,27 @@ class TestDataPlaceholders:
             TabTemplate(
                 tab="placeholder_test",
                 steps=[
-                    BaseStep(
-                        id="navigate",
-                        action="navigate",
-                        value=test_page_url
-                    ),
+                    BaseStep(id="navigate", action="navigate", value=test_page_url),
                     BaseStep(
                         id="get_title",
                         action="data",
                         object_type="id",
                         object="main-title",
                         key="meeting_title",
-                        data_type="text"
+                        data_type="text",
                     ),
                     BaseStep(
                         id="save_with_placeholder",
                         action="savePDF",
                         value=str(output_dir / "{{meeting_title}}.pdf"),
-                        key="pdf_file"
-                    )
-                ]
+                        key="pdf_file",
+                    ),
+                ],
             )
         ]
 
         results = await run_scraper(templates)
-        
+
         assert len(results) == 1
         assert "pdf_file" in results[0]
         assert results[0]["meeting_title"] == "StepWright Test Page"

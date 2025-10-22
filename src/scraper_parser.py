@@ -65,7 +65,7 @@ __all__ = [
     "execute_step_list",
     "execute_tab",
     "clone_step_with_index",
-# Public API
+    # Public API
     "run_scraper",
     "run_scraper_with_callback",
 ]

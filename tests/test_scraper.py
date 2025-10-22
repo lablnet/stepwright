@@ -4,13 +4,12 @@
 
 import pytest
 import sys
-import os
 from pathlib import Path
 
 # Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from scraper import (
+from src.scraper import (
     get_browser,
     navigate,
     elem,
@@ -61,10 +60,7 @@ class TestGetBrowser:
     @pytest.mark.asyncio
     async def test_custom_launch_options(self):
         """Should accept custom launch options"""
-        test_browser = await get_browser({
-            "headless": True,
-            "args": ["--no-sandbox"]
-        })
+        test_browser = await get_browser({"headless": True, "args": ["--no-sandbox"]})
         assert test_browser is not None
         await test_browser.close()
         await _shutdown_playwright()
@@ -90,6 +86,7 @@ class TestNavigate:
     async def test_wait_after_navigation(self, page, test_page_url):
         """Should wait after navigation when specified"""
         import time
+
         start_time = time.time()
         await navigate(page, test_page_url, 100)
         end_time = time.time()
@@ -168,6 +165,7 @@ class TestInput:
         """Should wait after input when specified"""
         await navigate(page, test_page_url)
         import time
+
         start_time = time.time()
         await input_action(page, "id", "search-box", "test", 100)
         end_time = time.time()
@@ -183,7 +181,7 @@ class TestClick:
         """Should click on an element"""
         await navigate(page, test_page_url)
         await click(page, "id", "show-hidden")
-        
+
         # Check if hidden content is now visible
         hidden_content = await elem(page, "id", "hidden-content")
         is_visible = await hidden_content.is_visible()
@@ -205,7 +203,7 @@ class TestDoubleClick:
         """Should double click on an element"""
         await navigate(page, test_page_url)
         await double_click(page, "id", "show-hidden")
-        
+
         # Check if hidden content is now visible
         hidden_content = await elem(page, "id", "hidden-content")
         is_visible = await hidden_content.is_visible()
@@ -219,15 +217,17 @@ class TestClickCheckBox:
     async def test_check_checkbox(self, page, test_page_url):
         """Should check a checkbox"""
         await navigate(page, test_page_url)
-        
+
         # Add a checkbox to the page for testing
-        await page.evaluate("""() => {
+        await page.evaluate(
+            """() => {
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.id = 'test-checkbox';
             document.body.appendChild(checkbox);
-        }""")
-        
+        }"""
+        )
+
         await click_check_box(page, "id", "test-checkbox")
         checkbox = await elem(page, "id", "test-checkbox")
         is_checked = await checkbox.is_checked()
@@ -272,6 +272,7 @@ class TestGetData:
         """Should wait before getting data when specified"""
         await navigate(page, test_page_url)
         import time
+
         start_time = time.time()
         await get_data(page, "id", "main-title", "text", 100)
         end_time = time.time()

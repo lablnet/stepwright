@@ -9,7 +9,7 @@ import pathlib
 import re
 from typing import Any, Dict, Optional
 
-from playwright.async_api import Page, Locator
+from playwright.async_api import Locator
 
 from .step_types import SelectorType
 

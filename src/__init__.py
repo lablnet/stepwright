@@ -82,4 +82,3 @@ __all__ = [
     "click_check_box",
     "get_data",
 ]
-

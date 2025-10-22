@@ -17,11 +17,11 @@ async def run_scraper(
 ) -> List[Dict[str, Any]]:
     """
     Execute a scraping template and return the gathered data.
-    
+
     Args:
         templates: List of tab templates to execute
         options: Optional configuration for browser and callbacks
-        
+
     Returns:
         List of collected data dictionaries
     """
@@ -53,7 +53,7 @@ async def run_scraper_with_callback(
 ) -> None:
     """
     Execute a scraping template with streaming results via callback for each result.
-    
+
     Args:
         templates: List of tab templates to execute
         on_result: Callback function called for each result

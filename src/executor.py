@@ -23,7 +23,6 @@ from .scraper import (
     navigate,
     input as input_action,
     click as click_action,
-    get_data,
     elem,
 )
 
@@ -41,7 +40,7 @@ async def execute_step(
     try:
         if step.action == "navigate":
             await navigate(page, step.value or "")
-        
+
         elif step.action == "input":
             await input_action(
                 page,
@@ -50,7 +49,7 @@ async def execute_step(
                 step.value or "",
                 step.wait or 0,
             )
-        
+
         elif step.action == "click":
             loc = locator_for(page, step.object_type, step.object or "")
             if await loc.count() == 0:
@@ -60,7 +59,7 @@ async def execute_step(
                     await click_action(page, step.object_type or "tag", step.object or "")
                 except Exception as e:
                     print(f"   ⚠️  Click failed for {step.object}: {e}")
-        
+
         elif step.action == "data":
             try:
                 check_selector = step.object or ""
@@ -72,7 +71,7 @@ async def execute_step(
                     loc = locator_for(scope_locator, step.object_type, check_selector)
                 else:
                     loc = locator_for(page, step.object_type, check_selector)
-                    
+
                 if await loc.count() == 0:
                     print(f"   ⚠️  Element not found: {check_selector} - skipping data")
                     key = step.key or step.id or "data"
@@ -94,10 +93,10 @@ async def execute_step(
                             val = await loc.first.text_content()
                     else:  # default
                         val = await loc.first.text_content()
-                    
+
                     if step.wait and step.wait > 0:
                         await page.wait_for_timeout(step.wait)
-                        
+
                     key = step.key or step.id or "data"
                     collector[key] = val
                     print(f"Step Data: {key}: {val}")
@@ -192,7 +191,7 @@ async def _handle_foreach(
         # independent result per item
         item_collector: Dict[str, Any] = {}
 
-        for s in (step.subSteps or []):
+        for s in step.subSteps or []:
             cloned = clone_step_with_index(s, idx)
             try:
                 await execute_step(page, cloned, item_collector, on_result, scope_locator=current)
@@ -234,7 +233,9 @@ async def _handle_open(
         if href:
             if not href.startswith("http"):
                 href = str(pathlib.PurePosixPath(href))
-                href = str(pathlib.PurePosixPath(str(page.url))).rstrip("/") + "/" + href.lstrip("/")
+                href = (
+                    str(pathlib.PurePosixPath(str(page.url))).rstrip("/") + "/" + href.lstrip("/")
+                )
             new_page = await ctx.new_page()
             await new_page.goto(href, wait_until="networkidle")
         else:
@@ -422,10 +423,7 @@ def clone_step_with_index(step: BaseStep, idx: int) -> BaseStep:
 
 
 async def execute_step_list(
-    page: Page,
-    steps: List[BaseStep],
-    collected: Dict[str, Any],
-    on_result=None
+    page: Page, steps: List[BaseStep], collected: Dict[str, Any], on_result=None
 ) -> None:
     """Execute a list of steps sequentially"""
     print(f"📝 Executing {len(steps)} step(s)")
@@ -454,12 +452,16 @@ async def execute_tab(
 
     pagination = template.pagination
 
-    async def run_pagination(page: Page, pagination: PaginationConfig, log_prefix: str = "") -> bool:
+    async def run_pagination(
+        page: Page, pagination: PaginationConfig, log_prefix: str = ""
+    ) -> bool:
         """Execute pagination action (next button or scroll)"""
         if pagination.strategy == "next" and pagination.nextButton:
             print(f"{log_prefix}👉 Clicking next button")
             try:
-                await click_action(page, pagination.nextButton.object_type, pagination.nextButton.object)
+                await click_action(
+                    page, pagination.nextButton.object_type, pagination.nextButton.object
+                )
                 if pagination.nextButton.wait:
                     await page.wait_for_timeout(pagination.nextButton.wait)
                 else:
@@ -469,9 +471,17 @@ async def execute_tab(
                 return False
         elif pagination.strategy == "scroll":
             print(f"{log_prefix}🖱️  Scrolling for pagination")
-            offset = pagination.scroll.offset if pagination.scroll and pagination.scroll.offset is not None else await page.evaluate("() => window.innerHeight")
+            offset = (
+                pagination.scroll.offset
+                if pagination.scroll and pagination.scroll.offset is not None
+                else await page.evaluate("() => window.innerHeight")
+            )
             await page.evaluate("y => window.scrollBy(0, y)", offset)
-            delay = pagination.scroll.delay if pagination.scroll and pagination.scroll.delay is not None else 1000
+            delay = (
+                pagination.scroll.delay
+                if pagination.scroll and pagination.scroll.delay is not None
+                else 1000
+            )
             await page.wait_for_timeout(delay)
             return True
         return False
@@ -488,7 +498,11 @@ async def execute_tab(
             page_index += 1
 
         collected: Dict[str, Any] = {}
-        steps_for_page = template.perPageSteps if (template.perPageSteps and len(template.perPageSteps) > 0) else (template.steps or [])
+        steps_for_page = (
+            template.perPageSteps
+            if (template.perPageSteps and len(template.perPageSteps) > 0)
+            else (template.steps or [])
+        )
         await execute_step_list(page, steps_for_page, collected, on_result)
         if collected:
             item_keys = [k for k in collected.keys() if k.startswith("item_")]
@@ -520,7 +534,11 @@ async def execute_tab(
             if not paginated:
                 break
 
-        steps_for_page = template.perPageSteps if (template.perPageSteps and len(template.perPageSteps) > 0) else (template.steps or [])
+        steps_for_page = (
+            template.perPageSteps
+            if (template.perPageSteps and len(template.perPageSteps) > 0)
+            else (template.steps or [])
+        )
         await execute_step_list(page, steps_for_page, collected, on_result)
 
         if collected:

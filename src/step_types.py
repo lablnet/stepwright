@@ -4,8 +4,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Literal, Optional
+from dataclasses import dataclass
+from typing import Any, List, Literal, Optional
 
 # Type aliases
 SelectorType = Literal["id", "class", "tag", "xpath"]
@@ -15,6 +15,7 @@ DataType = Literal["text", "html", "value", "default", "attribute"]
 @dataclass
 class BaseStep:
     """Represents a single scraping step/action"""
+
     id: str
     description: Optional[str] = None
     object_type: Optional[SelectorType] = None
@@ -45,6 +46,7 @@ class BaseStep:
 @dataclass
 class NextButtonConfig:
     """Configuration for next button pagination"""
+
     object_type: SelectorType
     object: str
     wait: Optional[int] = None
@@ -53,6 +55,7 @@ class NextButtonConfig:
 @dataclass
 class ScrollConfig:
     """Configuration for scroll-based pagination"""
+
     offset: Optional[int] = None
     delay: Optional[int] = None
 
@@ -60,6 +63,7 @@ class ScrollConfig:
 @dataclass
 class PaginationConfig:
     """Configuration for pagination strategy"""
+
     strategy: Literal["next", "scroll"] = "next"
     nextButton: Optional[NextButtonConfig] = None
     scroll: Optional[ScrollConfig] = None
@@ -71,6 +75,7 @@ class PaginationConfig:
 @dataclass
 class TabTemplate:
     """Template for a scraping tab/workflow"""
+
     tab: str
     initSteps: Optional[List[BaseStep]] = None
     perPageSteps: Optional[List[BaseStep]] = None
@@ -81,5 +86,6 @@ class TabTemplate:
 @dataclass
 class RunOptions:
     """Options for running the scraper"""
+
     browser: Optional[dict] = None  # passed to chromium.launch
     onResult: Optional[Any] = None  # Callable[[Dict[str, Any], int], Any]
