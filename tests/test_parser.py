@@ -9,8 +9,8 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from src.parser import run_scraper, run_scraper_with_callback
-from src.step_types import (
+from parser import run_scraper, run_scraper_with_callback
+from step_types import (
     TabTemplate,
     BaseStep,
     RunOptions,

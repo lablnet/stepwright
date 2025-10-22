@@ -293,7 +293,7 @@ class TestCompleteNewsScrapingScenario:
             )
         ]
 
-        from src.step_types import RunOptions
+        from step_types import RunOptions
 
         results = await run_scraper(
             templates,

@@ -6,9 +6,9 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict, List, Optional
 
-from .step_types import TabTemplate, RunOptions
-from .executor import execute_tab
-from .scraper import get_browser, _shutdown_playwright
+from step_types import TabTemplate, RunOptions
+from executor import execute_tab
+from scraper import get_browser, _shutdown_playwright
 
 
 async def run_scraper(
