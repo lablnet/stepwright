@@ -14,7 +14,7 @@ long_description = (this_directory / "README.md").read_text(encoding="utf-8")
 
 setup(
     name="stepwright",
-    version="0.1.0",
+    version="0.1.1",
     author="Muhammad Umer Farooq",
     author_email="umer@lablnet.com",
     description="A powerful web scraping library built with Playwright",
