@@ -75,3 +75,30 @@ async def maybe_await(x):
     if asyncio.iscoroutine(x):
         return await x
     return x
+
+
+def flatten_nested_foreach_results(item: Dict[str, Any]) -> Any:
+    """
+    Flatten nested foreach results into an array.
+    
+    If the item contains nested item_* keys (from nested foreach loops),
+    flatten them into an array. Otherwise, return the item as-is.
+    
+    Args:
+        item: Dictionary that may contain nested item_* keys
+        
+    Returns:
+        Either a flattened array of items or the original item
+    """
+    # Check if item contains nested item_* keys (from nested foreach)
+    nested_item_keys = [k for k in item.keys() if k.startswith("item_")]
+    if nested_item_keys:
+        # Flatten nested items into an array
+        flattened_items = []
+        for k in sorted(nested_item_keys, key=lambda x: int(x.split('_')[1])):
+            if item[k] and len(item[k]) > 0:
+                flattened_items.append(item[k])
+        return flattened_items
+    else:
+        # No nested items, return item as is
+        return item
