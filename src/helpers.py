@@ -18,8 +18,10 @@ def replace_index_placeholders(text: Optional[str], i: int) -> Optional[str]:
     """Replace index placeholders ({{ i }}, {{ i_plus1 }}) in text"""
     if not text:
         return text
+    # Convert to string if it's not already a string
+    text_str = str(text) if not isinstance(text, str) else text
     return (
-        text.replace("{{ i }}", str(i))
+        text_str.replace("{{ i }}", str(i))
         .replace("{{i}}", str(i))
         .replace("{{ i_plus1 }}", str(i + 1))
         .replace("{{i_plus1}}", str(i + 1))
