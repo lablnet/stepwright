@@ -9,10 +9,10 @@ __author__ = "Muhammad Umer Farooq"
 __email__ = "umer@lablnet.com"
 
 # Import main API
-from parser import run_scraper, run_scraper_with_callback
+from .parser import run_scraper, run_scraper_with_callback
 
 # Import types
-from step_types import (
+from .step_types import (
     BaseStep,
     NextButtonConfig,
     ScrollConfig,
@@ -24,21 +24,21 @@ from step_types import (
 )
 
 # Import helpers (for advanced usage)
-from helpers import (
+from .helpers import (
     replace_index_placeholders,
     replace_data_placeholders,
     locator_for,
 )
 
 # Import executor functions (for advanced usage)
-from executor import (
+from .executor import (
     execute_step,
     execute_step_list,
     execute_tab,
 )
 
 # Import low-level scraper functions (for advanced usage)
-from scraper import (
+from .scraper import (
     get_browser,
     navigate,
     elem,

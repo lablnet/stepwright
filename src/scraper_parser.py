@@ -14,7 +14,7 @@ Import from this module for backward compatibility, or import directly from the 
 """
 
 # Re-export all types
-from step_types import (
+from .step_types import (
     BaseStep,
     NextButtonConfig,
     ScrollConfig,
@@ -26,14 +26,14 @@ from step_types import (
 )
 
 # Re-export helper functions
-from helpers import (
+from .helpers import (
     replace_index_placeholders,
     replace_data_placeholders,
     locator_for,
 )
 
 # Re-export executor functions
-from executor import (
+from .executor import (
     execute_step,
     execute_step_list,
     execute_tab,
@@ -41,7 +41,7 @@ from executor import (
 )
 
 # Re-export public API
-from parser import (
+from .parser import (
     run_scraper,
     run_scraper_with_callback,
 )

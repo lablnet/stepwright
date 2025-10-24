@@ -137,3 +137,4 @@ integration-downloads/
 integration-output/
 *.pdf
 
+/test_env

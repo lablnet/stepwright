@@ -11,15 +11,15 @@ from typing import Any, Callable, Dict, List, Optional
 from playwright.async_api import Page
 from playwright.async_api import async_playwright
 
-from step_types import BaseStep, PaginationConfig, TabTemplate
-from helpers import (
+from .step_types import BaseStep, PaginationConfig, TabTemplate
+from .helpers import (
     locator_for,
     replace_index_placeholders,
     replace_data_placeholders,
     _ensure_dir,
     maybe_await,
 )
-from scraper import (
+from .scraper import (
     navigate,
     input as input_action,
     click as click_action,

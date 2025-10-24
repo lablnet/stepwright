@@ -11,7 +11,7 @@ from typing import Any, Dict, Optional
 
 from playwright.async_api import Locator
 
-from step_types import SelectorType
+from .step_types import SelectorType
 
 
 def replace_index_placeholders(text: Optional[str], i: int) -> Optional[str]:
