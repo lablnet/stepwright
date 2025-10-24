@@ -28,6 +28,7 @@ from .helpers import (
     replace_index_placeholders,
     replace_data_placeholders,
     locator_for,
+    flatten_nested_foreach_results,
 )
 
 # Import executor functions (for advanced usage)
@@ -69,6 +70,7 @@ __all__ = [
     "replace_index_placeholders",
     "replace_data_placeholders",
     "locator_for",
+    "flatten_nested_foreach_results",
     # Executor
     "execute_step",
     "execute_step_list",

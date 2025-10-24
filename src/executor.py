@@ -18,6 +18,7 @@ from .helpers import (
     replace_data_placeholders,
     _ensure_dir,
     maybe_await,
+    flatten_nested_foreach_results,
 )
 from .scraper import (
     navigate,
@@ -204,7 +205,14 @@ async def _handle_foreach(
 
         if item_collector:
             print(f"   📋 Collected data for item {idx}: {list(item_collector.keys())}")
-            # Note: on_result callback is handled by execute_tab for consistency
+            # Call callback immediately for each foreach item (like TypeScript version)
+            # Flatten nested foreach results into an array
+            if on_result:
+                try:
+                    flattened_result = flatten_nested_foreach_results(item_collector)
+                    await maybe_await(on_result(flattened_result, idx))
+                except Exception as e:
+                    print(f"   ⚠️  Callback failed for item {idx}: {e}")
 
 
 async def _handle_open(
@@ -515,9 +523,10 @@ async def execute_tab(
                 for k in item_keys:
                     item = collected[k]
                     if item and len(item) > 0:
-                        results.append(item)
-                        if on_result:
-                            await maybe_await(on_result(item, result_index))
+                        # Flatten nested foreach results into an array (same logic as callback)
+                        flattened_result = flatten_nested_foreach_results(item)
+                        results.append(flattened_result)
+                        # Callback already called in _handle_foreach for each item, no need to call again
                         result_index += 1
             else:
                 results.append(collected)
@@ -551,9 +560,10 @@ async def execute_tab(
                 for k in item_keys:
                     item = collected[k]
                     if item and len(item) > 0:
-                        results.append(item)
-                        if on_result:
-                            await maybe_await(on_result(item, result_index))
+                        # Flatten nested foreach results into an array (same logic as callback)
+                        flattened_result = flatten_nested_foreach_results(item)
+                        results.append(flattened_result)
+                        # Callback already called in _handle_foreach for each item, no need to call again
                         result_index += 1
             else:
                 results.append(collected)
