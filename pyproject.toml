@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "stepwright"
-version = "0.1.1"
+version = "0.1.2"
 description = "A powerful web scraping library built with Playwright that provides a declarative, step-by-step approach to web automation and data extraction"
 readme = "README.md"
 authors = [

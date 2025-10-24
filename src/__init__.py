@@ -4,7 +4,7 @@ StepWright - A powerful web scraping library built with Playwright
 A declarative, step-by-step approach to web automation and data extraction.
 """
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 __author__ = "Muhammad Umer Farooq"
 __email__ = "umer@lablnet.com"
 
