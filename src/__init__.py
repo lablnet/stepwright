@@ -47,6 +47,7 @@ from .scraper import (
     double_click,
     click_check_box,
     get_data,
+    _shutdown_playwright,
 )
 
 __all__ = [
@@ -81,4 +82,5 @@ __all__ = [
     "double_click",
     "click_check_box",
     "get_data",
+    "_shutdown_playwright",
 ]

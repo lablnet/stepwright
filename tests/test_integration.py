@@ -6,11 +6,8 @@ import pytest
 import sys
 from pathlib import Path
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
-from parser import run_scraper, run_scraper_with_callback
-from step_types import TabTemplate, BaseStep, PaginationConfig, NextButtonConfig
+# Import from the installed package
+from stepwright import run_scraper, run_scraper_with_callback, TabTemplate, BaseStep, PaginationConfig, NextButtonConfig
 
 
 @pytest.fixture
@@ -293,7 +290,7 @@ class TestCompleteNewsScrapingScenario:
             )
         ]
 
-        from step_types import RunOptions
+        from stepwright import RunOptions
 
         results = await run_scraper(
             templates,
