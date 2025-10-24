@@ -414,9 +414,13 @@ async def _handle_download_pdf(page: Page, step: BaseStep, collector: Dict[str, 
 def clone_step_with_index(step: BaseStep, idx: int) -> BaseStep:
     """Clone a step with index placeholders replaced"""
     cloned = BaseStep(**{**step.__dict__})
-    cloned.object = replace_index_placeholders(cloned.object, idx)
-    cloned.value = replace_index_placeholders(cloned.value, idx)
-    cloned.key = replace_index_placeholders(cloned.key, idx)
+    # Only replace placeholders in string fields.
+    if cloned.object and isinstance(cloned.object, str):
+        cloned.object = replace_index_placeholders(cloned.object, idx)
+    if cloned.value and isinstance(cloned.value, str):
+        cloned.value = replace_index_placeholders(cloned.value, idx)
+    if cloned.key and isinstance(cloned.key, str):
+        cloned.key = replace_index_placeholders(cloned.key, idx)
     if cloned.subSteps:
         cloned.subSteps = [clone_step_with_index(s, idx) for s in cloned.subSteps]
     return cloned
