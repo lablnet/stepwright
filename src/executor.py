@@ -20,6 +20,12 @@ from .helpers import (
     _ensure_dir,
     maybe_await,
     flatten_nested_foreach_results,
+    evaluate_condition,
+    find_locator_with_fallbacks,
+    apply_random_delay,
+    transform_data_regex,
+    apply_transform,
+    wait_for_selector_if_configured,
 )
 from .scraper import (
     navigate,
@@ -27,6 +33,8 @@ from .scraper import (
     click as click_action,
 )
 from .handlers import (
+    # Data handlers
+    _handle_data_extraction,
     # File handlers
     _handle_event_download,
     _handle_save_pdf,
@@ -64,73 +72,139 @@ async def execute_step(
     """Execute a single scraping step"""
     print(f"➡️  Step `{step.id}` ({step.action})")
 
+    # Check conditional execution
+    if step.skipIf:
+        if await evaluate_condition(page, step.skipIf, collector):
+            print(f"   ⏭️  Skipping step (skipIf condition true)")
+            return
+    
+    if step.onlyIf:
+        if not await evaluate_condition(page, step.onlyIf, collector):
+            print(f"   ⏭️  Skipping step (onlyIf condition false)")
+            return
+
+    # Apply random delay if configured
+    await apply_random_delay(page, step.randomDelay)
+
+    # Retry wrapper
+    retry_count = step.retry or 0
+    retry_delay = step.retryDelay or 1000
+    
+    for attempt in range(retry_count + 1):
+        try:
+            await _execute_step_internal(page, step, collector, on_result, scope_locator)
+            return  # Success, exit retry loop
+        except Exception as e:
+            if attempt < retry_count:
+                print(f"   🔄 Retry {attempt + 1}/{retry_count} after {retry_delay}ms: {e}")
+                await page.wait_for_timeout(retry_delay)
+            else:
+                raise  # Re-raise on final attempt
+
+
+async def _execute_step_internal(
+    page: Page,
+    step: BaseStep,
+    collector: Dict[str, Any],
+    on_result: Optional[Callable[[Dict[str, Any], int], Any]] = None,
+    scope_locator: Optional[Any] = None,
+) -> None:
+    """Internal step execution (called by retry wrapper)"""
     try:
         if step.action == "navigate":
             await navigate(page, step.value or "")
 
         elif step.action == "input":
-            await input_action(
+            # Wait for selector if configured
+            await wait_for_selector_if_configured(page, step, scope_locator)
+
+            # Find locator with fallbacks
+            loc, used_type, used_selector = await find_locator_with_fallbacks(
                 page,
-                step.object_type or "tag",
+                scope_locator,
+                step.object_type,
                 step.object or "",
-                step.value or "",
-                step.wait or 0,
+                step.fallbackSelectors
             )
+            
+            if not loc or await loc.count() == 0:
+                if step.continueOnEmpty is False:
+                    raise ValueError(f"Input element not found: {step.object}")
+                print(f"   ⚠️  Input element not found: {step.object}")
+                return
+            
+            # Clear if configured
+            if step.clearBeforeInput is not False:  # Default True
+                await loc.first.clear()
+            
+            # Input with delay if configured
+            value = replace_data_placeholders(step.value or "", collector) or step.value or ""
+            if step.inputDelay:
+                # Type character by character
+                for char in value:
+                    await loc.first.type(char, delay=step.inputDelay)
+            else:
+                await loc.first.fill(value)
+            
+            if step.wait and step.wait > 0:
+                await page.wait_for_timeout(step.wait)
 
         elif step.action == "click":
-            loc = locator_for(page, step.object_type, step.object or "")
-            if await loc.count() == 0:
+            # Wait for selector if configured
+            await wait_for_selector_if_configured(page, step, scope_locator)
+
+            # Find locator with fallbacks
+            loc, used_type, used_selector = await find_locator_with_fallbacks(
+                page,
+                scope_locator,
+                step.object_type,
+                step.object or "",
+                step.fallbackSelectors
+            )
+            
+            if not loc or await loc.count() == 0:
+                if step.continueOnEmpty is False:
+                    raise ValueError(f"Element not found: {step.object}")
                 print(f"   ⚠️  Element not found: {step.object} - skipping click")
-            else:
-                try:
-                    await click_action(page, step.object_type or "tag", step.object or "")
-                except Exception as e:
-                    print(f"   ⚠️  Click failed for {step.object}: {e}")
+                return
+            
+            # Check element state
+            if step.requireVisible is not False:  # Default True for click
+                if not await loc.first.is_visible():
+                    if step.forceClick:
+                        print(f"   ⚠️  Element not visible, using force click")
+                    else:
+                        raise ValueError(f"Element not visible: {used_selector}")
+            
+            if step.requireEnabled:
+                if not await loc.first.is_enabled():
+                    raise ValueError(f"Element not enabled: {used_selector}")
+            
+            # Perform click with modifiers
+            try:
+                modifiers = step.clickModifiers or []
+                
+                if step.doubleClick:
+                    await loc.first.dblclick(modifiers=modifiers)
+                elif step.rightClick:
+                    await loc.first.click(button="right", modifiers=modifiers, force=step.forceClick or False)
+                else:
+                    await loc.first.click(modifiers=modifiers, force=step.forceClick or False)
+            except Exception as e:
+                if step.skipOnError:
+                    print(f"   ⚠️  Click failed (skipping): {e}")
+                else:
+                    raise
 
         elif step.action == "data":
             try:
-                check_selector = step.object or ""
-                if step.data_type == "attribute" and re.search(r"/@\w+$", check_selector):
-                    check_selector = re.sub(r"/@\w+$", "", check_selector)
-
-                # Use scope_locator if provided (for foreach context)
-                if scope_locator:
-                    loc = locator_for(scope_locator, step.object_type, check_selector)
-                else:
-                    loc = locator_for(page, step.object_type, check_selector)
-
-                if await loc.count() == 0:
-                    print(f"   ⚠️  Element not found: {check_selector} - skipping data")
-                    key = step.key or step.id or "data"
-                    collector[key] = None
-                else:
-                    # Extract data from the scoped locator
-                    if step.data_type == "text":
-                        val = await loc.first.text_content()
-                    elif step.data_type == "html":
-                        val = await loc.first.inner_html()
-                    elif step.data_type == "value":
-                        val = await loc.first.input_value()
-                    elif step.data_type == "attribute":
-                        attr_match = re.search(r"/@(\w+)$", step.object or "")
-                        if attr_match:
-                            attr_name = attr_match.group(1)
-                            val = await loc.first.get_attribute(attr_name)
-                        else:
-                            val = await loc.first.text_content()
-                    else:  # default
-                        val = await loc.first.text_content()
-
-                    if step.wait and step.wait > 0:
-                        await page.wait_for_timeout(step.wait)
-
-                    key = step.key or step.id or "data"
-                    collector[key] = val
-                    print(f"Step Data: {key}: {val}")
+                await _handle_data_extraction(page, step, collector, scope_locator)
             except Exception as e:
                 print(f"   ⚠️  Data extraction failed for {step.object}: {e}")
                 key = step.key or step.id or "data"
-                collector[key] = None
+                if step.required:
+                    raise
+                collector[key] = step.defaultValue
 
         elif step.action == "eventBaseDownload":
             await _handle_event_download(page, step, collector)
@@ -201,6 +275,9 @@ async def execute_step(
 
     except Exception as e:
         # Top-level step guard
+        if step.skipOnError:
+            print(f"   ⚠️  Step '{step.id}' error (skipping): {e}")
+            return
         if step.terminateonerror:
             raise
         print(f"   ⚠️  Step '{step.id}' error (ignored): {e}")
