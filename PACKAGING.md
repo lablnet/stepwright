@@ -76,8 +76,8 @@ python -m build
 ```
 
 This creates:
-- `dist/stepwright-0.1.3-py3-none-any.whl` (wheel)
-- `dist/stepwright-0.1.3.tar.gz` (source distribution)
+- `dist/stepwright-1.0.0-py3-none-any.whl` (wheel)
+- `dist/stepwright-1.0.0.tar.gz` (source distribution)
 
 ### 4. Check Distribution
 
