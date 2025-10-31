@@ -9,8 +9,8 @@ from typing import Any, Dict, Optional
 
 from playwright.async_api import Page
 
-from .step_types import BaseStep
-from .helpers import locator_for, replace_data_placeholders, _ensure_dir
+from ..step_types import BaseStep
+from ..helpers import locator_for, replace_data_placeholders, _ensure_dir
 
 
 async def _handle_reload(page: Page, step: BaseStep, collector: Dict[str, Any]) -> None:

@@ -26,7 +26,16 @@ from .scraper import (
     input as input_action,
     click as click_action,
 )
-from .page_actions import (
+from .handlers import (
+    # File handlers
+    _handle_event_download,
+    _handle_save_pdf,
+    _handle_download_pdf,
+    # Loop handlers
+    _handle_foreach,
+    _handle_open,
+    clone_step_with_index,
+    # Page action handlers
     _handle_reload,
     _handle_get_url,
     _handle_get_title,
@@ -42,16 +51,6 @@ from .page_actions import (
     _handle_screenshot,
     _handle_wait_for_selector,
     _handle_evaluate,
-)
-from .file_handlers import (
-    _handle_event_download,
-    _handle_save_pdf,
-    _handle_download_pdf,
-)
-from .loop_handlers import (
-    _handle_foreach,
-    _handle_open,
-    clone_step_with_index,
 )
 
 

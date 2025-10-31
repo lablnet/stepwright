@@ -9,8 +9,8 @@ from typing import Any, Callable, Dict, Optional
 
 from playwright.async_api import Page
 
-from .step_types import BaseStep
-from .helpers import locator_for, replace_index_placeholders, flatten_nested_foreach_results, maybe_await
+from ..step_types import BaseStep
+from ..helpers import locator_for, replace_index_placeholders, flatten_nested_foreach_results, maybe_await
 
 
 async def _handle_foreach(

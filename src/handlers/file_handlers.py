@@ -12,9 +12,9 @@ from urllib.parse import urlparse, urljoin, parse_qs
 from playwright.async_api import Page
 from playwright.async_api import async_playwright
 
-from .step_types import BaseStep
-from .helpers import locator_for, replace_data_placeholders, _ensure_dir
-from .scraper import elem
+from ..step_types import BaseStep
+from ..helpers import locator_for, replace_data_placeholders, _ensure_dir
+from ..scraper import elem
 
 
 async def _handle_event_download(page: Page, step: BaseStep, collector: Dict[str, Any]) -> None:
