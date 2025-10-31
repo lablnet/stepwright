@@ -14,6 +14,16 @@ A powerful web scraping library built with Playwright that provides a declarativ
 - 📡 **Streaming Results**: Real-time result processing with callbacks
 - 🎯 **Error Handling**: Graceful error handling with configurable termination
 - 🔧 **Flexible Selectors**: Support for ID, class, tag, and XPath selectors
+- 🔁 **Retry Logic**: Automatic retry on failure with configurable delays
+- 🎛️ **Conditional Execution**: Skip or execute steps based on JavaScript conditions
+- ⏳ **Smart Waiting**: Wait for selectors before actions with configurable timeouts
+- 🔀 **Fallback Selectors**: Multiple selector fallbacks for increased robustness
+- 🖱️ **Enhanced Clicks**: Double-click, right-click, modifier keys, and force clicks
+- ⌨️ **Input Enhancements**: Clear before input, human-like typing delays
+- 🔍 **Data Transformations**: Regex extraction, JavaScript transformations, default values
+- 🌐 **Page Actions**: Reload, get URL/title, meta tags, cookies, localStorage, viewport
+- 🤖 **Human-like Behavior**: Random delays to mimic human interaction
+- ✅ **Element State Checks**: Require visible/enabled before actions
 
 ## Installation
 
@@ -129,7 +139,11 @@ class BaseStep:
     action: Literal[
         "navigate", "input", "click", "data", "scroll", 
         "eventBaseDownload", "foreach", "open", "savePDF", 
-        "printToPDF", "downloadPDF", "downloadFile"
+        "printToPDF", "downloadPDF", "downloadFile",
+        "reload", "getUrl", "getTitle", "getMeta", "getCookies", 
+        "setCookies", "getLocalStorage", "setLocalStorage", 
+        "getSessionStorage", "setSessionStorage", "getViewportSize", 
+        "setViewportSize", "screenshot", "waitForSelector", "evaluate"
     ] = "navigate"
     value: Optional[str] = None
     key: Optional[str] = None
@@ -138,6 +152,56 @@ class BaseStep:
     terminateonerror: Optional[bool] = None
     subSteps: Optional[List["BaseStep"]] = None
     autoScroll: Optional[bool] = None
+    
+    # Retry configuration
+    retry: Optional[int] = None                  # Number of retries on failure (default: 0)
+    retryDelay: Optional[int] = None            # Delay between retries in ms (default: 1000)
+    
+    # Conditional execution
+    skipIf: Optional[str] = None                 # JavaScript expression - skip step if true
+    onlyIf: Optional[str] = None                # JavaScript expression - execute only if true
+    
+    # Element waiting and state
+    waitForSelector: Optional[str] = None        # Wait for selector before action
+    waitForSelectorTimeout: Optional[int] = None # Timeout for waitForSelector in ms (default: 30000)
+    waitForSelectorState: Optional[Literal["visible", "hidden", "attached", "detached"]] = None
+    
+    # Multiple selector fallbacks
+    fallbackSelectors: Optional[List[Dict[str, str]]] = None  # List of {object_type, object}
+    
+    # Click enhancements
+    clickModifiers: Optional[List[ClickModifier]] = None  # ['Control', 'Meta', 'Shift', 'Alt']
+    doubleClick: Optional[bool] = None            # Perform double click
+    forceClick: Optional[bool] = None            # Force click even if not visible/actionable
+    rightClick: Optional[bool] = None            # Perform right click
+    
+    # Input enhancements
+    clearBeforeInput: Optional[bool] = None      # Clear input before typing (default: True)
+    inputDelay: Optional[int] = None           # Delay between keystrokes in ms
+    
+    # Data extraction enhancements
+    required: Optional[bool] = None             # Raise error if extraction returns None/empty
+    defaultValue: Optional[str] = None          # Default value if extraction fails
+    regex: Optional[str] = None                 # Regex pattern to extract from data
+    regexGroup: Optional[int] = None            # Regex group to extract (default: 0)
+    transform: Optional[str] = None             # JavaScript expression to transform data
+    
+    # Timeout configuration
+    timeout: Optional[int] = None                # Step-specific timeout in ms
+    
+    # Navigation enhancements
+    waitUntil: Optional[Literal["load", "domcontentloaded", "networkidle", "commit"]] = None
+    
+    # Human-like behavior
+    randomDelay: Optional[Dict[str, int]] = None # {min: ms, max: ms} for random delay
+    
+    # Element state checks
+    requireVisible: Optional[bool] = None        # Require element visible (default: True for click)
+    requireEnabled: Optional[bool] = None       # Require element enabled
+    
+    # Skip/continue logic
+    skipOnError: Optional[bool] = None          # Skip step if error occurs (default: False)
+    continueOnEmpty: Optional[bool] = None      # Continue if element not found (default: True)
 ```
 
 #### `RunOptions`
@@ -419,6 +483,425 @@ BaseStep(
 
 Without `terminateonerror=True`, errors are logged but execution continues.
 
+## Advanced Step Options
+
+### Retry Logic
+
+Automatically retry failed steps with configurable delays:
+
+```python
+BaseStep(
+    id="click_button",
+    action="click",
+    object_type="id",
+    object="flaky-button",
+    retry=3,              # Retry up to 3 times
+    retryDelay=1000        # Wait 1 second between retries
+)
+```
+
+### Conditional Execution
+
+Execute or skip steps based on JavaScript conditions:
+
+```python
+# Skip step if condition is true
+BaseStep(
+    id="optional_click",
+    action="click",
+    object_type="id",
+    object="optional-button",
+    skipIf="document.querySelector('.modal').classList.contains('hidden')"
+)
+
+# Execute only if condition is true
+BaseStep(
+    id="conditional_data",
+    action="data",
+    object_type="id",
+    object="dynamic-content",
+    key="content",
+    onlyIf="document.querySelector('#dynamic-content') !== null"
+)
+```
+
+### Wait for Selector
+
+Wait for elements to appear before performing actions:
+
+```python
+BaseStep(
+    id="click_after_load",
+    action="click",
+    object_type="id",
+    object="target-button",
+    waitForSelector="#loading-indicator",      # Wait for this selector
+    waitForSelectorTimeout=5000,               # Timeout: 5 seconds
+    waitForSelectorState="hidden"              # Wait until hidden
+)
+```
+
+### Fallback Selectors
+
+Provide multiple selector options for increased robustness:
+
+```python
+BaseStep(
+    id="click_with_fallback",
+    action="click",
+    object_type="id",
+    object="primary-button",                   # Try this first
+    fallbackSelectors=[
+        {"object_type": "class", "object": "btn-primary"},
+        {"object_type": "class", "object": "submit-btn"},
+        {"object_type": "xpath", "object": "//button[contains(text(), 'Submit')]"}
+    ]
+)
+```
+
+### Click Enhancements
+
+Advanced click options for different interaction types:
+
+```python
+# Double click
+BaseStep(
+    id="double_click",
+    action="click",
+    object_type="id",
+    object="item",
+    doubleClick=True
+)
+
+# Right click (context menu)
+BaseStep(
+    id="right_click",
+    action="click",
+    object_type="id",
+    object="context-menu-trigger",
+    rightClick=True
+)
+
+# Click with modifier keys (Ctrl/Cmd+Click)
+BaseStep(
+    id="multi_select",
+    action="click",
+    object_type="class",
+    object="item",
+    clickModifiers=["Control"]  # or ["Meta"] for Mac
+)
+
+# Force click (click hidden elements)
+BaseStep(
+    id="force_click",
+    action="click",
+    object_type="id",
+    object="hidden-button",
+    forceClick=True
+)
+```
+
+### Input Enhancements
+
+More control over input behavior:
+
+```python
+# Clear input before typing (default: True)
+BaseStep(
+    id="clear_and_input",
+    action="input",
+    object_type="id",
+    object="search-box",
+    value="new search term",
+    clearBeforeInput=True  # Clear existing value first
+)
+
+# Human-like typing with delays
+BaseStep(
+    id="human_like_input",
+    action="input",
+    object_type="id",
+    object="form-field",
+    value="slowly typed text",
+    inputDelay=100  # 100ms delay between each character
+)
+```
+
+### Data Extraction Enhancements
+
+Advanced data extraction and transformation options:
+
+```python
+# Extract with regex
+BaseStep(
+    id="extract_price",
+    action="data",
+    object_type="id",
+    object="price",
+    key="price",
+    regex=r"\$(\d+\.\d+)",        # Extract dollar amount
+    regexGroup=1                   # Get first capture group
+)
+
+# Transform extracted data with JavaScript
+BaseStep(
+    id="transform_data",
+    action="data",
+    object_type="id",
+    object="raw-data",
+    key="processed",
+    transform="value.toUpperCase().trim()"  # JavaScript transformation
+)
+
+# Required field with default value
+BaseStep(
+    id="get_required_data",
+    action="data",
+    object_type="id",
+    object="important-field",
+    key="important",
+    required=True,                 # Raise error if not found
+    defaultValue="N/A"            # Use if extraction fails
+)
+
+# Continue even if element not found
+BaseStep(
+    id="optional_data",
+    action="data",
+    object_type="id",
+    object="optional-content",
+    key="optional",
+    continueOnEmpty=True           # Don't raise error if not found
+)
+```
+
+### Element State Checks
+
+Validate element state before actions:
+
+```python
+BaseStep(
+    id="click_visible",
+    action="click",
+    object_type="id",
+    object="button",
+    requireVisible=True,           # Ensure element is visible
+    requireEnabled=True            # Ensure element is enabled
+)
+```
+
+### Random Delays
+
+Add human-like random delays to actions:
+
+```python
+BaseStep(
+    id="human_like_action",
+    action="click",
+    object_type="id",
+    object="button",
+    randomDelay={"min": 500, "max": 2000}  # Random delay between 500-2000ms
+)
+```
+
+### Skip on Error
+
+Skip steps that fail instead of stopping execution:
+
+```python
+BaseStep(
+    id="optional_step",
+    action="click",
+    object_type="id",
+    object="optional-button",
+    skipOnError=True  # Continue even if this step fails
+)
+```
+
+## Page Actions
+
+### Reload Page
+
+Reload the current page with optional wait conditions:
+
+```python
+BaseStep(
+    id="reload",
+    action="reload",
+    waitUntil="networkidle"  # Wait for network to be idle
+)
+```
+
+### Get Current URL
+
+```python
+BaseStep(
+    id="get_url",
+    action="getUrl",
+    key="current_url"  # Store in collector
+)
+```
+
+### Get Page Title
+
+```python
+BaseStep(
+    id="get_title",
+    action="getTitle",
+    key="page_title"
+)
+```
+
+### Get Meta Tags
+
+```python
+# Get specific meta tag
+BaseStep(
+    id="get_description",
+    action="getMeta",
+    object="description",  # Meta name or property
+    key="meta_description"
+)
+
+# Get all meta tags
+BaseStep(
+    id="get_all_meta",
+    action="getMeta",
+    key="all_meta_tags"  # Returns dictionary of all meta tags
+)
+```
+
+### Cookies Management
+
+```python
+# Get all cookies
+BaseStep(
+    id="get_cookies",
+    action="getCookies",
+    key="cookies"
+)
+
+# Get specific cookie
+BaseStep(
+    id="get_session_cookie",
+    action="getCookies",
+    object="session_id",
+    key="session"
+)
+
+# Set cookie
+BaseStep(
+    id="set_cookie",
+    action="setCookies",
+    object="preference",
+    value="dark_mode"
+)
+```
+
+### LocalStorage & SessionStorage
+
+```python
+# Get localStorage value
+BaseStep(
+    id="get_storage",
+    action="getLocalStorage",
+    object="user_preference",
+    key="preference"
+)
+
+# Set localStorage value
+BaseStep(
+    id="set_storage",
+    action="setLocalStorage",
+    object="theme",
+    value="dark"
+)
+
+# Get all localStorage items
+BaseStep(
+    id="get_all_storage",
+    action="getLocalStorage",
+    key="all_storage"
+)
+
+# SessionStorage (same pattern)
+BaseStep(
+    id="get_session",
+    action="getSessionStorage",
+    object="temp_data",
+    key="data"
+)
+```
+
+### Viewport Operations
+
+```python
+# Get viewport size
+BaseStep(
+    id="get_viewport",
+    action="getViewportSize",
+    key="viewport"
+)
+
+# Set viewport size
+BaseStep(
+    id="set_viewport",
+    action="setViewportSize",
+    value="1920x1080"  # or "1920,1080" or "1920 1080"
+)
+```
+
+### Screenshot
+
+```python
+# Full page screenshot
+BaseStep(
+    id="screenshot",
+    action="screenshot",
+    value="./screenshots/page.png",
+    data_type="full"  # Full page, omit for viewport only
+)
+
+# Element screenshot
+BaseStep(
+    id="element_screenshot",
+    action="screenshot",
+    object_type="id",
+    object="content-area",
+    value="./screenshots/element.png",
+    key="screenshot_path"
+)
+```
+
+### Wait for Selector
+
+Explicit wait for element state:
+
+```python
+BaseStep(
+    id="wait_for_element",
+    action="waitForSelector",
+    object_type="id",
+    object="dynamic-content",
+    value="visible",      # visible, hidden, attached, detached
+    wait=5000,            # Timeout in ms
+    key="wait_result"     # Stores True/False
+)
+```
+
+### Evaluate JavaScript
+
+Execute custom JavaScript:
+
+```python
+BaseStep(
+    id="custom_js",
+    action="evaluate",
+    value="() => document.querySelector('.counter').textContent",
+    key="counter_value"
+)
+```
+
 ## Complete Example
 
 ```python
@@ -569,13 +1052,21 @@ stepwright/
 │   ├── executor.py        # Core step execution logic
 │   ├── parser.py          # Public API (run_scraper)
 │   ├── scraper.py         # Low-level browser automation
+│   ├── handlers/          # Action-specific handlers
+│   │   ├── __init__.py
+│   │   ├── data_handlers.py      # Data extraction handlers
+│   │   ├── file_handlers.py      # File download/PDF handlers
+│   │   ├── loop_handlers.py      # Foreach/open handlers
+│   │   └── page_actions.py       # Page-related actions (reload, getUrl, etc.)
 │   └── scraper_parser.py  # Backward compatibility
 ├── tests/
 │   ├── __init__.py
 │   ├── conftest.py        # Pytest configuration
 │   ├── test_page.html     # Test HTML page
+│   ├── test_page_enhanced.html  # Enhanced test page for new features
 │   ├── test_scraper.py    # Core scraper tests
 │   ├── test_parser.py     # Parser function tests
+│   ├── test_new_features.py  # Tests for new features
 │   └── test_integration.py # Integration tests
 ├── pyproject.toml         # Package configuration
 ├── setup.py               # Setup script
@@ -602,10 +1093,15 @@ mypy src/
 The codebase follows separation of concerns:
 
 - **step_types.py**: All type definitions (BaseStep, TabTemplate, etc.)
-- **helpers.py**: Utility functions (placeholder replacement, locator creation)
-- **executor.py**: Core execution logic (execute steps, handle pagination)
+- **helpers.py**: Utility functions (placeholder replacement, locator creation, condition evaluation)
+- **executor.py**: Core execution logic (execute steps, handle pagination, retry logic)
 - **parser.py**: Public API (run_scraper, run_scraper_with_callback)
 - **scraper.py**: Low-level Playwright wrapper (navigate, click, get_data)
+- **handlers/**: Action-specific handlers organized by functionality
+  - **data_handlers.py**: Data extraction logic with transformations
+  - **file_handlers.py**: File download and PDF operations
+  - **loop_handlers.py**: Foreach loops and new tab/window handling
+  - **page_actions.py**: Page-related actions (reload, getUrl, cookies, storage, etc.)
 - **scraper_parser.py**: Backward compatibility wrapper
 
 You can import from the main module or specific submodules:
