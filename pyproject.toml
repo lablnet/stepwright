@@ -10,7 +10,6 @@ readme = "README.md"
 authors = [
     {name = "Muhammad Umer Farooq", email = "umer@lablnet.com"}
 ]
-license = {text = "MIT"}
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -48,8 +47,9 @@ Repository = "https://github.com/lablnet/stepwright"
 "Bug Tracker" = "https://github.com/lablnet/stepwright/issues"
 
 [tool.setuptools]
-packages = ["stepwright"]
+packages = ["stepwright", "stepwright.handlers"]
 package-dir = {"stepwright" = "src"}
+license-files = []  # Disable auto-detection to prevent PEP 639 fields
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -73,6 +73,7 @@ extend-exclude = '''
   | \.tox
   | \.venv
   | build
+  | docs
   | dist
 )/
 '''
