@@ -119,13 +119,18 @@ async def _handle_get_meta(page: Page, step: BaseStep, collector: Dict[str, Any]
     meta_name = step.object  # e.g., "description", "og:title", "keywords"
     
     if meta_name:
-        # Get specific meta tag
+        # Get specific meta tag - use safe attribute checking
         meta_content = await page.evaluate(
-            f"""() => {{
-                const meta = document.querySelector('meta[name="{meta_name}"]') || 
-                           document.querySelector('meta[property="{meta_name}"]');
-                return meta ? meta.getAttribute('content') : null;
-            }}"""
+            """(metaName) => {
+                const metas = document.querySelectorAll('meta');
+                for (const meta of metas) {
+                    if (meta.getAttribute('name') === metaName || meta.getAttribute('property') === metaName) {
+                        return meta.getAttribute('content');
+                    }
+                }
+                return null;
+            }""",
+            meta_name
         )
         key = step.key or step.id or "meta"
         collector[key] = meta_content
