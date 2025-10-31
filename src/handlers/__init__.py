@@ -4,6 +4,11 @@
 
 from __future__ import annotations
 
+# Import data handlers
+from .data_handlers import (
+    _handle_data_extraction,
+)
+
 # Import file handlers
 from .file_handlers import (
     _handle_event_download,
@@ -38,6 +43,8 @@ from .page_actions import (
 )
 
 __all__ = [
+    # Data handlers
+    "_handle_data_extraction",
     # File handlers
     "_handle_event_download",
     "_handle_save_pdf",
