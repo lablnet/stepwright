@@ -6,12 +6,16 @@ from __future__ import annotations
 
 import asyncio
 import pathlib
+import random
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
-from playwright.async_api import Locator
+from playwright.async_api import Locator, Page
 
 from .step_types import SelectorType
+
+if TYPE_CHECKING:
+    from .step_types import BaseStep
 
 
 def replace_index_placeholders(text: Optional[str], i: int) -> Optional[str]:
@@ -102,3 +106,117 @@ def flatten_nested_foreach_results(item: Dict[str, Any]) -> Any:
     else:
         # No nested items, return item as is
         return item
+
+
+async def evaluate_condition(page: Page, condition: str, collector: Dict[str, Any]) -> bool:
+    """Evaluate JavaScript condition with collector data available"""
+    try:
+        # Replace collector placeholders in condition
+        condition_with_data = replace_data_placeholders(condition, collector) or condition
+        result = await page.evaluate(f"() => {condition_with_data}")
+        return bool(result)
+    except Exception as e:
+        print(f"   ⚠️  Condition evaluation failed: {condition} - {e}")
+        return False
+
+
+async def find_locator_with_fallbacks(
+    page: Page,
+    scope_locator: Optional[Locator],
+    object_type: Optional[SelectorType],
+    object_selector: str,
+    fallback_selectors: Optional[List[Dict[str, str]]],
+) -> Tuple[Optional[Locator], Optional[str], Optional[str]]:
+    """
+    Try to find locator, using fallback selectors if primary fails.
+    
+    Returns:
+        Tuple of (locator, used_object_type, used_object) or (None, None, None) if all fail
+    """
+    context = scope_locator if scope_locator else page
+    
+    # Try primary selector first
+    loc = locator_for(context, object_type, object_selector)
+    if await loc.count() > 0:
+        return loc, object_type, object_selector
+    
+    # Try fallback selectors
+    if fallback_selectors:
+        for fallback in fallback_selectors:
+            fb_type = fallback.get("object_type")
+            fb_selector = fallback.get("object")
+            if fb_type and fb_selector:
+                fb_loc = locator_for(context, fb_type, fb_selector)
+                if await fb_loc.count() > 0:
+                    print(f"   ✅ Using fallback selector: {fb_type}={fb_selector}")
+                    return fb_loc, fb_type, fb_selector
+    
+    return None, None, None
+
+
+async def apply_random_delay(page: Page, random_delay: Optional[Dict[str, int]]) -> None:
+    """Apply random delay before action if configured"""
+    if random_delay:
+        min_delay = random_delay.get("min", 0)
+        max_delay = random_delay.get("max", 0)
+        if max_delay > min_delay:
+            delay = random.randint(min_delay, max_delay)
+            await page.wait_for_timeout(delay)
+
+
+def transform_data_regex(value: Any, regex: Optional[str], regex_group: Optional[int]) -> Any:
+    """Apply regex extraction to data"""
+    if not regex or not value:
+        return value
+    
+    try:
+        match = re.search(regex, str(value))
+        if match:
+            group_idx = regex_group if regex_group is not None else 0
+            if group_idx < len(match.groups()) + 1:
+                return match.group(group_idx)
+            else:
+                return match.group(0)
+    except Exception as e:
+        print(f"   ⚠️  Regex extraction failed: {e}")
+    
+    return value
+
+
+async def wait_for_selector_if_configured(
+    page: Page,
+    step: "BaseStep",
+    scope_locator: Optional[Locator],
+) -> None:
+    """Wait for selector if waitForSelector is configured in step"""
+    if not step.waitForSelector:
+        return
+    
+    wait_timeout = step.waitForSelectorTimeout or 30000
+    wait_state = step.waitForSelectorState or "visible"
+    
+    try:
+        wait_loc = locator_for(
+            scope_locator if scope_locator else page,
+            step.object_type,
+            step.waitForSelector
+        )
+        await wait_loc.wait_for(state=wait_state, timeout=wait_timeout)
+    except Exception:
+        pass  # Continue even if wait fails
+
+
+async def apply_transform(page: Page, value: Any, transform: Optional[str], collector: Dict[str, Any]) -> Any:
+    """Apply JavaScript transformation to value"""
+    if not transform or value is None:
+        return value
+    
+    try:
+        # Replace collector placeholders in transform expression
+        transform_with_data = replace_data_placeholders(transform, collector) or transform
+        # Evaluate transform with value available as 'value'
+        result = await page.evaluate(f"(value) => {transform_with_data}", value)
+        return result
+    except Exception as e:
+        print(f"   ⚠️  Transform failed: {e}")
+        return value
