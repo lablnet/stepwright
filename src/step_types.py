@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 # Type aliases
 SelectorType = Literal["id", "class", "tag", "xpath"]
