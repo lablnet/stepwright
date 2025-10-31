@@ -33,6 +33,21 @@ class BaseStep:
         "printToPDF",
         "downloadPDF",
         "downloadFile",
+        "reload",
+        "getUrl",
+        "getTitle",
+        "getMeta",
+        "getCookies",
+        "setCookies",
+        "getLocalStorage",
+        "setLocalStorage",
+        "getSessionStorage",
+        "setSessionStorage",
+        "getViewportSize",
+        "setViewportSize",
+        "screenshot",
+        "waitForSelector",
+        "evaluate",
     ] = "navigate"
     value: Optional[str] = None
     key: Optional[str] = None
