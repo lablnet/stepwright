@@ -377,7 +377,8 @@ async def execute_tab(
             else (template.steps or [])
         )
         await execute_step_list(page, steps_for_page, collected, on_result)
-        if collected:
+        # Always add result if steps were executed (even if collector is empty)
+        if steps_for_page and len(steps_for_page) > 0:
             item_keys = [k for k in collected.keys() if k.startswith("item_")]
             result_index = 0
             if item_keys:
@@ -415,7 +416,9 @@ async def execute_tab(
         )
         await execute_step_list(page, steps_for_page, collected, on_result)
 
-        if collected:
+        # Always add result if steps were executed (even if collector is empty)
+        # This ensures actions-only steps (like clicks) still produce results
+        if steps_for_page and len(steps_for_page) > 0:
             item_keys = [k for k in collected.keys() if k.startswith("item_")]
             if item_keys:
                 for k in item_keys:
