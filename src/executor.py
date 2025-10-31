@@ -25,7 +25,33 @@ from .scraper import (
     navigate,
     input as input_action,
     click as click_action,
-    elem,
+)
+from .page_actions import (
+    _handle_reload,
+    _handle_get_url,
+    _handle_get_title,
+    _handle_get_meta,
+    _handle_get_cookies,
+    _handle_set_cookies,
+    _handle_get_local_storage,
+    _handle_set_local_storage,
+    _handle_get_session_storage,
+    _handle_set_session_storage,
+    _handle_get_viewport_size,
+    _handle_set_viewport_size,
+    _handle_screenshot,
+    _handle_wait_for_selector,
+    _handle_evaluate,
+)
+from .file_handlers import (
+    _handle_event_download,
+    _handle_save_pdf,
+    _handle_download_pdf,
+)
+from .loop_handlers import (
+    _handle_foreach,
+    _handle_open,
+    clone_step_with_index,
 )
 
 
@@ -111,10 +137,10 @@ async def execute_step(
             await _handle_event_download(page, step, collector)
 
         elif step.action == "foreach":
-            await _handle_foreach(page, step, collector, on_result)
+            await _handle_foreach(page, step, collector, execute_step, on_result)
 
         elif step.action == "open":
-            await _handle_open(page, step, collector, on_result)
+            await _handle_open(page, step, collector, execute_step, on_result)
 
         elif step.action == "scroll":
             await _handle_scroll(page, step)
@@ -124,6 +150,51 @@ async def execute_step(
 
         elif step.action in ("downloadPDF", "downloadFile"):
             await _handle_download_pdf(page, step, collector)
+
+        elif step.action == "reload":
+            await _handle_reload(page, step, collector)
+
+        elif step.action == "getUrl":
+            await _handle_get_url(page, step, collector)
+
+        elif step.action == "getTitle":
+            await _handle_get_title(page, step, collector)
+
+        elif step.action == "getMeta":
+            await _handle_get_meta(page, step, collector)
+
+        elif step.action == "getCookies":
+            await _handle_get_cookies(page, step, collector)
+
+        elif step.action == "setCookies":
+            await _handle_set_cookies(page, step, collector)
+
+        elif step.action == "getLocalStorage":
+            await _handle_get_local_storage(page, step, collector)
+
+        elif step.action == "setLocalStorage":
+            await _handle_set_local_storage(page, step, collector)
+
+        elif step.action == "getSessionStorage":
+            await _handle_get_session_storage(page, step, collector)
+
+        elif step.action == "setSessionStorage":
+            await _handle_set_session_storage(page, step, collector)
+
+        elif step.action == "getViewportSize":
+            await _handle_get_viewport_size(page, step, collector)
+
+        elif step.action == "setViewportSize":
+            await _handle_set_viewport_size(page, step, collector)
+
+        elif step.action == "screenshot":
+            await _handle_screenshot(page, step, collector)
+
+        elif step.action == "waitForSelector":
+            await _handle_wait_for_selector(page, step, collector)
+
+        elif step.action == "evaluate":
+            await _handle_evaluate(page, step, collector)
 
         # trailing wait
         if step.wait and step.wait > 0:
@@ -136,145 +207,6 @@ async def execute_step(
         print(f"   ⚠️  Step '{step.id}' error (ignored): {e}")
 
 
-async def _handle_event_download(page: Page, step: BaseStep, collector: Dict[str, Any]) -> None:
-    """Handle eventBaseDownload action"""
-    if not step.value:
-        raise ValueError(f"download step {step.id} requires 'value' as target filepath")
-
-    key = step.key or step.id or "file"
-    saved_path: Optional[str] = None
-    try:
-        target = await elem(page, step.object_type or "tag", step.object or "")
-        if await target.is_visible():
-            async with page.expect_download(timeout=10000) as dl_info:
-                await target.click()
-            dl = await dl_info.value
-            await _ensure_dir(step.value)
-            await dl.save_as(step.value)
-            saved_path = step.value
-            print(f"   📥 Saved to {saved_path}")
-        else:
-            print(f"   📥 Element not visible or not found: {step.object}")
-    except Exception as e:
-        print(f"   📥 Download failed for {step.object}: {e}")
-    finally:
-        collector[key] = saved_path
-
-
-async def _handle_foreach(
-    page: Page,
-    step: BaseStep,
-    collector: Dict[str, Any],
-    on_result: Optional[Callable[[Dict[str, Any], int], Any]] = None,
-) -> None:
-    """Handle foreach loop action"""
-    if not step.object:
-        raise ValueError("foreach step requires object as locator")
-    if not step.subSteps:
-        raise ValueError("foreach step requires subSteps")
-
-    loc_all = locator_for(page, step.object_type, step.object)
-    try:
-        await loc_all.first.wait_for(state="attached", timeout=step.wait or 5000)
-    except Exception:
-        pass
-
-    count = await loc_all.count()
-    print(f"   🔁 foreach found {count} items for selector {step.object}")
-
-    for idx in range(count):
-        current = loc_all.nth(idx)
-        if step.autoScroll is not False:
-            try:
-                await current.scroll_into_view_if_needed()
-            except Exception:
-                pass
-
-        # independent result per item
-        item_collector: Dict[str, Any] = {}
-
-        for s in step.subSteps or []:
-            cloned = clone_step_with_index(s, idx)
-            try:
-                await execute_step(page, cloned, item_collector, on_result, scope_locator=current)
-            except Exception as e:
-                print(f"⚠️  sub-step '{cloned.id}' failed: {e}")
-                if cloned.terminateonerror:
-                    raise
-
-        collector[f"item_{idx}"] = item_collector
-
-        if item_collector:
-            print(f"   📋 Collected data for item {idx}: {list(item_collector.keys())}")
-            # Call callback immediately for each foreach item (like TypeScript version)
-            # Flatten nested foreach results into an array
-            if on_result:
-                try:
-                    flattened_result = flatten_nested_foreach_results(item_collector)
-                    await maybe_await(on_result(flattened_result, idx))
-                except Exception as e:
-                    print(f"   ⚠️  Callback failed for item {idx}: {e}")
-
-
-async def _handle_open(
-    page: Page,
-    step: BaseStep,
-    collector: Dict[str, Any],
-    on_result: Optional[Callable[[Dict[str, Any], int], Any]] = None,
-) -> None:
-    """Handle open link/tab action"""
-    if not step.object:
-        raise ValueError("open step requires object locator")
-    if not step.subSteps:
-        raise ValueError("open step needs subSteps")
-
-    print(f"   🔗 Opening link/tab from selector {step.object}")
-    try:
-        link_loc = locator_for(page, step.object_type, step.object)
-        if await link_loc.count() == 0:
-            print(f"   ⚠️  Element not found: {step.object} - skipping open")
-            return
-
-        href = await link_loc.get_attribute("href")
-        ctx = page.context
-        new_page: Optional[Page] = None
-
-        if href:
-            if not href.startswith("http"):
-                href = str(pathlib.PurePosixPath(href))
-                href = (
-                    str(pathlib.PurePosixPath(str(page.url))).rstrip("/") + "/" + href.lstrip("/")
-                )
-            new_page = await ctx.new_page()
-            await new_page.goto(href, wait_until="networkidle")
-        else:
-            page_promise = ctx.wait_for_event("page")
-            try:
-                await link_loc.click(modifiers=["Meta"])
-            except Exception:
-                await link_loc.click()
-            new_page = await page_promise
-            await new_page.wait_for_load_state("networkidle")
-
-        inner = dict(collector)  # pass parent data in
-        for s in step.subSteps:
-            cloned = BaseStep(**{**s.__dict__})
-            try:
-                await execute_step(new_page, cloned, inner, on_result)
-            except Exception as e:
-                print(f"   ⚠️  Sub-step in open failed: {e}")
-                if cloned.terminateonerror:
-                    raise
-
-        collector.update(inner)
-        print("   🔙 Closed child tab")
-        await new_page.close()
-    except Exception as e:
-        print(f"   ⚠️  Open action failed for {step.object}: {e}")
-        if step.terminateonerror:
-            raise
-
-
 async def _handle_scroll(page: Page, step: BaseStep) -> None:
     """Handle scroll action"""
     if step.value is not None:
@@ -285,408 +217,6 @@ async def _handle_scroll(page: Page, step: BaseStep) -> None:
     else:
         offset = await page.evaluate("() => window.innerHeight")
     await page.evaluate("y => window.scrollBy(0, y)", offset)
-
-
-async def _handle_save_pdf(page: Page, step: BaseStep, collector: Dict[str, Any]) -> None:
-    """Handle savePDF action - attempts to download actual PDF binary before falling back to page.pdf"""
-    if not step.value:
-        raise ValueError(f"savePDF step {step.id} requires 'value' as target filepath")
-
-    collector_key = step.key or step.id or "file"
-    saved_path: Optional[str] = None
-    target_path_base: str = step.value
-
-    try:
-        # Ensure the page finished initial navigation
-        try:
-            await page.wait_for_load_state("domcontentloaded", timeout=step.wait or 600000)
-        except Exception:
-            pass
-
-        # Try to resolve the direct PDF URL
-        pdf_url: Optional[str] = None
-
-        # 1) If the current URL points to a PDF (anywhere in the URL), use it or extract from query
-        current_url = page.url
-        print(f"   📄 Current URL: {current_url}")
-        try:
-            parsed_url = urlparse(current_url)
-            query_params = parse_qs(parsed_url.query)
-            candidates = []
-            for param in ["file", "src", "document", "url"]:
-                if param in query_params and query_params[param]:
-                    val = query_params[param][0]
-                    if re.search(r"\.pdf", val, re.IGNORECASE):
-                        candidates.append(val)
-            
-            if candidates:
-                param_pdf = candidates[0]
-                pdf_url = urljoin(current_url, param_pdf)
-        except Exception:
-            pass
-
-        if not pdf_url and re.search(r"\.pdf", current_url, re.IGNORECASE):
-            pdf_url = current_url
-
-        # 2) Otherwise, try to discover PDF source from common viewer elements
-        if not pdf_url:
-            try:
-                pdf_url = await page.evaluate(
-                    """() => {
-                        const getAbs = (src) => {
-                            if (!src) return null;
-                            try {
-                                return new URL(src, window.location.href).toString();
-                            } catch {
-                                return src;
-                            }
-                        };
-
-                        const embed = document.querySelector('embed[type="application/pdf"]');
-                        if (embed && embed.getAttribute('src')) return getAbs(embed.getAttribute('src'));
-
-                        const objectEl = document.querySelector('object[type="application/pdf"]');
-                        if (objectEl && objectEl.getAttribute('data')) return getAbs(objectEl.getAttribute('data'));
-
-                        const iframes = Array.from(document.querySelectorAll('iframe'));
-                        const iframe = iframes.find(f => {
-                            const s = f.getAttribute('src') || '';
-                            return /\.pdf/i.test(s) || s.includes('pdf');
-                        });
-                        if (iframe && iframe.getAttribute('src')) return getAbs(iframe.getAttribute('src'));
-
-                        return null;
-                    }"""
-                )
-            except Exception:
-                pass
-
-        # 3) Additional wait if requested (helps some viewers populate 'src')
-        if not pdf_url and step.wait and step.wait > 0:
-            await page.wait_for_timeout(step.wait)
-            try:
-                # Try again once after waiting
-                pdf_url = await page.evaluate(
-                    """() => {
-                        const iframes = Array.from(document.querySelectorAll('iframe'));
-                        const iframe = iframes.find(f => f.getAttribute('src'));
-                        return iframe ? iframe.src : null;
-                    }"""
-                )
-            except Exception:
-                pass
-
-        # If we couldn't find a PDF URL, try fallback methods
-        if not pdf_url:
-            print("   📄 Direct PDF URL not found. Trying viewer download fallback...")
-            # Will try viewer download methods below
-        else:
-            # Build candidate URLs and try them until one succeeds
-            candidates: List[str] = []
-            is_absolute = bool(re.match(r"^https?:", pdf_url, re.IGNORECASE))
-            
-            if is_absolute:
-                candidates.append(pdf_url)
-            else:
-                # 1) Same-origin resolution
-                candidates.append(urljoin(current_url, pdf_url))
-
-            # No site-specific heuristics; keep candidates generic only
-
-            # Log URLs for debugging
-            print(f"   📄 Current URL: {current_url}")
-            print(f"   📄 Candidate PDF URLs: {candidates}")
-
-            # Download the first successful candidate
-            downloaded_buffer: Optional[bytes] = None
-            for candidate_url in candidates:
-                try:
-                    ctx = page.context
-                    cookies = await ctx.cookies(candidate_url)
-                    cookie_header = "; ".join(f"{c['name']}={c['value']}" for c in cookies) if cookies else ""
-                    
-                    async with async_playwright() as p:
-                        api = await p.request.new_context(
-                            extra_http_headers={
-                                **({"Cookie": cookie_header} if cookie_header else {}),
-                                "Referer": current_url,
-                                "User-Agent": "Mozilla/5.0",
-                            }
-                        )
-                        res = await api.get(candidate_url)
-                        if res.ok:
-                            downloaded_buffer = await res.body()
-                            await api.dispose()
-                            pdf_url = candidate_url  # final URL used
-                            break
-                        else:
-                            print(f"   📄 GET {candidate_url} -> {res.status} {res.status_text()}")
-                            await api.dispose()
-                except Exception as e:
-                    print(f"   📄 GET {candidate_url} failed: {e}")
-
-            if downloaded_buffer:
-                resolved_path = replace_data_placeholders(target_path_base, collector) or target_path_base
-                await _ensure_dir(resolved_path)
-                with open(resolved_path, "wb") as f:
-                    f.write(downloaded_buffer)
-                saved_path = resolved_path
-                print(f"   📄 PDF saved to {resolved_path} (from {pdf_url})")
-            else:
-                pdf_url = None  # Reset to trigger fallback
-
-        # Fallback: viewer download methods
-        if not saved_path:
-            if not pdf_url:
-                print("   📄 All candidate PDF URLs failed. Trying viewer download fallback...")
-            
-            # Main page attempt (deep shadow click only)
-            saved = False
-            
-            # Try clicking download buttons in main page
-            try:
-                async with page.expect_download(timeout=5000) as dl_info:
-                    clicked_main = await page.evaluate(
-                        """async () => {
-                            const targetIds = ['download', 'save'];
-                            const visited = new Set();
-                            
-                            function tryClick(node) {
-                                if (visited.has(node)) return false;
-                                visited.add(node);
-                                const el = node;
-                                if (el && el.id && targetIds.includes(el.id)) {
-                                    el.click();
-                                    return true;
-                                }
-                                const elem = node;
-                                if (!elem) return false;
-                                const sr = elem.shadowRoot;
-                                if (sr) {
-                                    for (const child of Array.from(sr.children)) {
-                                        if (tryClick(child)) return true;
-                                    }
-                                }
-                                for (const child of Array.from(elem.children)) {
-                                    if (tryClick(child)) return true;
-                                }
-                                return false;
-                            }
-                            return tryClick(document.documentElement);
-                        }"""
-                    )
-                
-                if clicked_main:
-                    dl = await dl_info.value
-                    resolved_path = replace_data_placeholders(target_path_base, collector) or target_path_base
-                    await _ensure_dir(resolved_path)
-                    await dl.save_as(resolved_path)
-                    saved_path = resolved_path
-                    print(f"   📄 PDF saved via viewer download to {resolved_path}")
-                    saved = True
-            except Exception:
-                pass
-
-            # Frames attempt
-            if not saved:
-                all_frames = page.frames
-                for frame in all_frames:
-                    if frame == page.main_frame:
-                        continue
-                    try:
-                        async with page.expect_download(timeout=5000) as dl_info:
-                            clicked = await frame.evaluate(
-                                """async () => {
-                                    const targetIds = ['download', 'save'];
-                                    const visited = new Set();
-                                    
-                                    function tryClick(node) {
-                                        if (visited.has(node)) return false;
-                                        visited.add(node);
-                                        const el = node;
-                                        if (el && el.id && targetIds.includes(el.id)) {
-                                            el.click();
-                                            return true;
-                                        }
-                                        const elem = node;
-                                        if (!elem) return false;
-                                        const sr = elem.shadowRoot;
-                                        if (sr) {
-                                            for (const child of Array.from(sr.children)) {
-                                                if (tryClick(child)) return true;
-                                            }
-                                        }
-                                        for (const child of Array.from(elem.children)) {
-                                            if (tryClick(child)) return true;
-                                        }
-                                        return false;
-                                    }
-                                    return tryClick(document.documentElement);
-                                }"""
-                            )
-                        
-                        if clicked:
-                            dl = await dl_info.value
-                            resolved_path = replace_data_placeholders(target_path_base, collector) or target_path_base
-                            await _ensure_dir(resolved_path)
-                            await dl.save_as(resolved_path)
-                            saved_path = resolved_path
-                            print(f"   📄 PDF saved via viewer download to {resolved_path}")
-                            saved = True
-                            break
-                    except Exception:
-                        continue
-
-            # Non-click fallback: try to scrape a direct download link href and fetch it
-            if not saved:
-                try:
-                    hrefs = await page.evaluate(
-                        """() => {
-                            const links = [];
-                            const anchors = Array.from(document.querySelectorAll('a'));
-                            for (const a of anchors) {
-                                const text = (a.textContent || '').toLowerCase();
-                                const aria = (a.getAttribute('aria-label') || '').toLowerCase();
-                                if (a.hasAttribute('download') || text.includes('download') || aria.includes('download')) {
-                                    if (a.href) links.push(a.href);
-                                }
-                            }
-                            return links.slice(0, 3);
-                        }"""
-                    )
-                    if hrefs and len(hrefs) > 0:
-                        for href in hrefs:
-                            try:
-                                ctx = page.context
-                                cookies = await ctx.cookies(href)
-                                cookie_header = "; ".join(f"{c['name']}={c['value']}" for c in cookies) if cookies else ""
-                                
-                                async with async_playwright() as p:
-                                    api = await p.request.new_context(
-                                        extra_http_headers={
-                                            **({"Cookie": cookie_header} if cookie_header else {}),
-                                            "Referer": current_url,
-                                            "User-Agent": "Mozilla/5.0",
-                                            "Accept": "application/pdf,*/*",
-                                        }
-                                    )
-                                    res = await api.get(href)
-                                    if res.ok:
-                                        body = await res.body()
-                                        resolved_path = replace_data_placeholders(target_path_base, collector) or target_path_base
-                                        await _ensure_dir(resolved_path)
-                                        with open(resolved_path, "wb") as f:
-                                            f.write(body)
-                                        saved_path = resolved_path
-                                        print(f"   📄 PDF saved via scraped href to {resolved_path}")
-                                        await api.dispose()
-                                        saved = True
-                                        break
-                                    await api.dispose()
-                            except Exception:
-                                pass
-                except Exception:
-                    pass
-
-            if not saved:
-                print("   📄 Viewer download fallback failed.")
-
-    except Exception as e:
-        print(f"   📄 savePDF failed: {e}")
-    finally:
-        collector[collector_key] = saved_path
-
-
-async def _handle_download_pdf(page: Page, step: BaseStep, collector: Dict[str, Any]) -> None:
-    """Handle downloadPDF/downloadFile action"""
-    if not step.object:
-        raise ValueError("downloadPDF requires object locator")
-    if not step.value:
-        raise ValueError(f"downloadPDF step {step.id} requires 'value' as target filepath")
-
-    key = step.key or step.id or "file"
-    saved_path: Optional[str] = None
-
-    try:
-        link = locator_for(page, step.object_type, step.object)
-        if await link.count() == 0:
-            print(f"   ⚠️  PDF link not found: {step.object}")
-            collector[key] = None
-            return
-
-        href = await link.get_attribute("href")
-
-        if not href or href.startswith("javascript"):
-            ctx = page.context
-            page_promise = ctx.wait_for_event("page")
-            try:
-                await link.click(modifiers=["Meta"])
-            except Exception:
-                await link.click()
-            new_page = await page_promise
-            try:
-                await new_page.wait_for_load_state("domcontentloaded", timeout=15000)
-            except Exception:
-                pass
-            href = new_page.url
-            await new_page.close()
-
-        if not href:
-            print(f"   ⚠️  Could not resolve PDF URL from {step.object}")
-            collector[key] = None
-            return
-
-        if not href.startswith("http"):
-            href = str(pathlib.PurePosixPath(str(page.url))).rstrip("/") + "/" + href.lstrip("/")
-
-        # collect cookies for target URL
-        ctx = page.context
-        cookies = await ctx.cookies(href)
-        cookie_header = "; ".join(f"{c['name']}={c['value']}" for c in cookies) if cookies else ""
-
-        # dedicated request context
-        async with async_playwright() as p:
-            req_ctx = await p.request.new_context(
-                extra_http_headers={
-                    **({"Cookie": cookie_header} if cookie_header else {}),
-                    "Referer": page.url,
-                    "User-Agent": "Mozilla/5.0",
-                }
-            )
-            res = await req_ctx.get(href)
-            if not res.ok:
-                print(f"   📄 GET {href} -> {res.status} {res.status_text()}")
-                await req_ctx.dispose()
-                collector[key] = None
-                return
-            buffer = await res.body()
-            await req_ctx.dispose()
-
-        resolved = replace_data_placeholders(step.value, collector) or step.value
-        await _ensure_dir(resolved)
-        with open(resolved, "wb") as f:
-            f.write(buffer)
-        saved_path = resolved
-        print(f"   📄 File saved to {resolved}")
-    except Exception as e:
-        print(f"   📄 downloadPDF failed: {e}")
-    finally:
-        collector[key] = saved_path
-
-
-def clone_step_with_index(step: BaseStep, idx: int) -> BaseStep:
-    """Clone a step with index placeholders replaced"""
-    cloned = BaseStep(**{**step.__dict__})
-    # Only replace placeholders in string fields.
-    if cloned.object and isinstance(cloned.object, str):
-        cloned.object = replace_index_placeholders(cloned.object, idx)
-    if cloned.value and isinstance(cloned.value, str):
-        cloned.value = replace_index_placeholders(cloned.value, idx)
-    if cloned.key and isinstance(cloned.key, str):
-        cloned.key = replace_index_placeholders(cloned.key, idx)
-    if cloned.subSteps:
-        cloned.subSteps = [clone_step_with_index(s, idx) for s in cloned.subSteps]
-    return cloned
 
 
 async def execute_step_list(
