@@ -16,9 +16,7 @@ StepWright completely abstracts away the complexity of raw browser automation sc
 
 We have moved our documentation to a modern, searchable VitePress website to better accommodate Advanced Data Flows, Parallelism strategies, and complex interactions!
 
-👉 **[Read the Official StepWright Documentation](https://github.com/lablnet/stepwright/tree/main/docs-site)** 
-
-*(Documentation site hosting URL pending, view locally via `pnpm run docs:dev` in the `docs-site` folder)*
+👉 **[Read the Official StepWright Documentation](https://stepwright.lablnet.com/)**
 
 ## Installation
 
