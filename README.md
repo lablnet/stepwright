@@ -24,6 +24,10 @@ A powerful web scraping library built with Playwright that provides a declarativ
 - 🌐 **Page Actions**: Reload, get URL/title, meta tags, cookies, localStorage, viewport
 - 🤖 **Human-like Behavior**: Random delays to mimic human interaction
 - ✅ **Element State Checks**: Require visible/enabled before actions
+- 🖼️ **IFrame Support**: Interact with elements inside nested IFrames
+- 🌀 **Virtual Scroll**: Efficiently collect data from infinite-scroll or virtualized lists
+- 🖱️ **Advanced Interactions**: Support for hover, drag & drop, and multi-select actions
+- 📤 **File Uploads**: Native support for uploading files to input elements
 
 ## Installation
 
@@ -143,7 +147,8 @@ class BaseStep:
         "reload", "getUrl", "getTitle", "getMeta", "getCookies", 
         "setCookies", "getLocalStorage", "setLocalStorage", 
         "getSessionStorage", "setSessionStorage", "getViewportSize", 
-        "setViewportSize", "screenshot", "waitForSelector", "evaluate"
+        "setViewportSize", "screenshot", "waitForSelector", "evaluate",
+        "hover", "select", "dragAndDrop", "uploadFile", "virtualScroll"
     ] = "navigate"
     value: Optional[str] = None
     key: Optional[str] = None
@@ -153,6 +158,18 @@ class BaseStep:
     terminateonerror: Optional[bool] = None
     subSteps: Optional[List["BaseStep"]] = None
     autoScroll: Optional[bool] = None
+    
+    # IFrame scoping
+    frameSelector: Optional[str] = None
+    frameSelectorType: Optional[SelectorType] = None
+    
+    # Virtual Scroll settings
+    virtualScrollOffset: Optional[int] = None
+    virtualScrollDelay: Optional[int] = None
+    virtualScrollUniqueKey: Optional[str] = None
+    virtualScrollLimit: Optional[int] = None
+    virtualScrollContainer: Optional[str] = None
+    virtualScrollContainerType: Optional[SelectorType] = None
     
     # Retry configuration
     retry: Optional[int] = None                  # Number of retries on failure (default: 0)
@@ -203,6 +220,10 @@ class BaseStep:
     # Skip/continue logic
     skipOnError: Optional[bool] = None          # Skip step if error occurs (default: False)
     continueOnEmpty: Optional[bool] = None      # Continue if element not found (default: True)
+
+    # Drag and Drop settings
+    targetObject: Optional[str] = None
+    targetObjectType: Optional[SelectorType] = None
 ```
 
 #### `RunOptions`
@@ -215,6 +236,21 @@ class RunOptions:
 ```
 
 ## Step Actions
+ 
+### IFrame Support
+All actions can be scoped within IFrames by providing `frameSelector` and `frameSelectorType`.
+
+```python
+BaseStep(
+    id="iframe_action",
+    action="click",
+    frameSelector="my-iframe-id",
+    frameSelectorType="id",
+    object_type="tag",
+    object="button"
+)
+```
+
 
 ### Navigate
 Navigate to a URL.
@@ -308,6 +344,29 @@ BaseStep(
 StepWright automatically handles context merging in nested loops. 
 - If you **do not** specify a `key` for an inner loop, the result will be flattened, and all parent data (like `category`) will be merged into every child record.
 - If you **do** specify a `key` (e.g., `key="products"`), the items will be collected into a structured array, keeping your data hierarchical.
+
+### Virtual Scroll
+Extract results from infinite-scroll or virtualized lists.
+
+```python
+BaseStep(
+    id="collect_virtual_items",
+    action="virtualScroll",
+    object_type="class",
+    object="list-item",
+    virtualScrollUniqueKey="id",       # Field to use for deduplication
+    virtualScrollLimit=100,             # Max items to collect
+    virtualScrollOffset=500,            # Scroll increment in pixels
+    virtualScrollDelay=1000,            # Delay after each scroll in ms
+    virtualScrollContainer="container", # Optional: element to scroll
+    virtualScrollContainerType="id",    # Optional: container selector type
+    key="items",
+    subSteps=[
+        BaseStep(id="name", action="data", object_type="tag", object="h3", key="name")
+    ]
+)
+```
+
 
 ### File Operations
 
@@ -930,6 +989,53 @@ BaseStep(
 )
 ```
 
+### Advanced UI Interactions
+
+#### Hover
+```python
+BaseStep(
+    id="hover_menu",
+    action="hover",
+    object_type="id",
+    object="menu-trigger"
+)
+```
+
+#### Select (Standard & Multi-select)
+```python
+BaseStep(
+    id="select_colors",
+    action="select",
+    object_type="id",
+    object="color-picker",
+    value="red,green,blue" # Comma separated for multi-select
+)
+```
+
+#### Drag and Drop
+```python
+BaseStep(
+    id="drag_item",
+    action="dragAndDrop",
+    object_type="id",
+    object="source-item",
+    targetObject="drop-zone",
+    targetObjectType="id"
+)
+```
+
+#### File Upload
+```python
+BaseStep(
+    id="upload_cv",
+    action="uploadFile",
+    object_type="id",
+    object="file-input",
+    value="/path/to/my-cv.pdf"
+)
+```
+
+
 ## Complete Example
 
 ```python
@@ -1085,16 +1191,19 @@ stepwright/
 │   │   ├── data_handlers.py      # Data extraction handlers
 │   │   ├── file_handlers.py      # File download/PDF handlers
 │   │   ├── loop_handlers.py      # Foreach/open handlers
-│   │   └── page_actions.py       # Page-related actions (reload, getUrl, etc.)
+│   │   ├── page_actions.py       # Page-related actions (reload, getUrl, etc.)
+│   │   └── interaction_handlers.py # Hover, select, drag&drop, virtual scroll
 │   └── scraper_parser.py  # Backward compatibility
 ├── tests/
 │   ├── __init__.py
 │   ├── conftest.py        # Pytest configuration
 │   ├── test_page.html     # Test HTML page
-│   ├── test_page_enhanced.html  # Enhanced test page for new features
+│   ├── test_page_enhanced.html  # Enhanced test page for expansion
+│   ├── advanced_demo.html  # Demo page for advanced interactions
 │   ├── test_scraper.py    # Core scraper tests
 │   ├── test_parser.py     # Parser function tests
-│   ├── test_new_features.py  # Tests for new features
+│   ├── test_nested_loops.py # Tests for nested FOREACH loops
+│   ├── test_advanced_features.py # Tests for hover, drag&drop, vscroll, iframe
 │   └── test_integration.py # Integration tests
 ├── pyproject.toml         # Package configuration
 ├── setup.py               # Setup script
@@ -1130,6 +1239,7 @@ The codebase follows separation of concerns:
   - **file_handlers.py**: File download and PDF operations
   - **loop_handlers.py**: Foreach loops and new tab/window handling
   - **page_actions.py**: Page-related actions (reload, getUrl, cookies, storage, etc.)
+  - **interaction_handlers.py**: Hover, select, drag and drop, file upload, and virtual scroll logic
 - **scraper_parser.py**: Backward compatibility wrapper
 
 You can import from the main module or specific submodules:

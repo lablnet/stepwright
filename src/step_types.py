@@ -49,6 +49,11 @@ class BaseStep:
         "screenshot",
         "waitForSelector",
         "evaluate",
+        "hover",
+        "dragAndDrop",
+        "select",
+        "uploadFile",
+        "virtualScroll",
     ] = "navigate"
     value: Optional[str] = None
     key: Optional[str] = None
@@ -60,6 +65,22 @@ class BaseStep:
     index_key: Optional[str] = (
         None  # custom index placeholder for loops (e.g., 'j', 'k')
     )
+
+    # IFrame support
+    frameSelector: Optional[str] = None
+    frameSelectorType: Optional[SelectorType] = None
+
+    # Virtual Scroll settings
+    virtualScrollOffset: Optional[int] = None
+    virtualScrollDelay: Optional[int] = None
+    virtualScrollUniqueKey: Optional[str] = None
+    virtualScrollLimit: Optional[int] = None
+    virtualScrollContainer: Optional[str] = None
+    virtualScrollContainerType: Optional[SelectorType] = None
+
+    # Drag and Drop settings
+    targetObject: Optional[str] = None
+    targetObjectType: Optional[SelectorType] = None
 
     # Retry configuration
     retry: Optional[int] = None  # Number of retries on failure (default: 0)

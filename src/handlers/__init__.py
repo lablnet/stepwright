@@ -42,6 +42,15 @@ from .page_actions import (
     _handle_evaluate,
 )
 
+# Import interaction handlers
+from .interaction_handlers import (
+    _handle_hover,
+    _handle_select,
+    _handle_drag_and_drop,
+    _handle_upload,
+    _handle_virtual_scroll,
+)
+
 __all__ = [
     # Data handlers
     "_handle_data_extraction",
@@ -69,5 +78,10 @@ __all__ = [
     "_handle_screenshot",
     "_handle_wait_for_selector",
     "_handle_evaluate",
+    # Interaction handlers
+    "_handle_hover",
+    "_handle_select",
+    "_handle_drag_and_drop",
+    "_handle_upload",
+    "_handle_virtual_scroll",
 ]
-

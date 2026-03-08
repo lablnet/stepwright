@@ -48,6 +48,12 @@ from .handlers import (
     _handle_screenshot,
     _handle_wait_for_selector,
     _handle_evaluate,
+    # Interaction handlers
+    _handle_hover,
+    _handle_select,
+    _handle_drag_and_drop,
+    _handle_upload,
+    _handle_virtual_scroll,
 )
 
 
@@ -103,18 +109,34 @@ async def _execute_step_internal(
     scope_locator: Optional[Any] = None,
 ) -> None:
     """Internal step execution (called by retry wrapper)"""
+    # Handle IFrame scoping
+    current_scope = scope_locator
+    if step.frameSelector:
+        selector = step.frameSelector
+        if step.frameSelectorType == "id":
+            selector = f"#{selector}"
+        elif step.frameSelectorType == "class":
+            selector = f".{selector}"
+        elif step.frameSelectorType == "xpath":
+            selector = f"xpath={selector}"
+
+        if scope_locator:
+            current_scope = scope_locator.frame_locator(selector)
+        else:
+            current_scope = page.frame_locator(selector)
+
     try:
         if step.action == "navigate":
             await navigate(page, step.value or "")
 
         elif step.action == "input":
             # Wait for selector if configured
-            await wait_for_selector_if_configured(page, step, scope_locator)
+            await wait_for_selector_if_configured(page, step, current_scope)
 
             # Find locator with fallbacks
             loc, used_type, used_selector = await find_locator_with_fallbacks(
                 page,
-                scope_locator,
+                current_scope,
                 step.object_type,
                 step.object or "",
                 step.fallbackSelectors,
@@ -148,12 +170,12 @@ async def _execute_step_internal(
 
         elif step.action == "click":
             # Wait for selector if configured
-            await wait_for_selector_if_configured(page, step, scope_locator)
+            await wait_for_selector_if_configured(page, step, current_scope)
 
             # Find locator with fallbacks
             loc, used_type, used_selector = await find_locator_with_fallbacks(
                 page,
-                scope_locator,
+                current_scope,
                 step.object_type,
                 step.object or "",
                 step.fallbackSelectors,
@@ -201,7 +223,7 @@ async def _execute_step_internal(
 
         elif step.action == "data":
             try:
-                await _handle_data_extraction(page, step, collector, scope_locator)
+                await _handle_data_extraction(page, step, collector, current_scope)
             except Exception as e:
                 print(f"   ⚠️  Data extraction failed for {step.object}: {e}")
                 key = step.key or step.id or "data"
@@ -271,6 +293,23 @@ async def _execute_step_internal(
 
         elif step.action == "evaluate":
             await _handle_evaluate(page, step, collector)
+
+        elif step.action == "hover":
+            await _handle_hover(page, step, collector, current_scope)
+
+        elif step.action == "select":
+            await _handle_select(page, step, collector, current_scope)
+
+        elif step.action == "dragAndDrop":
+            await _handle_drag_and_drop(page, step, collector, current_scope)
+
+        elif step.action == "uploadFile":
+            await _handle_upload(page, step, collector, current_scope)
+
+        elif step.action == "virtualScroll":
+            await _handle_virtual_scroll(
+                page, step, collector, _execute_step_internal, on_result, current_scope
+            )
 
         # trailing wait
         if step.wait and step.wait > 0:
