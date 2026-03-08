@@ -197,17 +197,33 @@ templates = [
 ]
 ```
 
-### 5. Streaming Results
+### 5. Parallel Scraping (Super-charged!)
+Run the same workflow for multiple keywords concurrently.
 
 ```python
-from stepwright import run_scraper_with_callback
+from stepwright import run_scraper, TabTemplate, BaseStep, ParameterizedTemplate
 
-async def process_result(result, index):
-    print(f"Processing result {index}: {result}")
-    # Save to database, file, etc.
+async def main():
+    search_tmpl = TabTemplate(
+        tab="search_{{term}}",
+        steps=[
+            BaseStep(id="nav", action="navigate", value="https://example.com/search?q={{term}}"),
+            BaseStep(id="price", action="data", object=".item-price", key="price")
+        ]
+    )
 
-await run_scraper_with_callback(templates, process_result)
+    # Search for 4 items at the SAME time!
+    task = ParameterizedTemplate(
+        template=search_tmpl,
+        parameter_key="term",
+        values=["SSD", "RAM", "GPU", "CPU"]
+    )
+
+    results = await run_scraper([task])
+    print(f"Collected total: {len(results)} items")
 ```
+
+### 6. Streaming Results
 
 ## Selector Types
 

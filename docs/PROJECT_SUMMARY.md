@@ -11,12 +11,12 @@ StepWright has been completely refactored and packaged as a professional Python 
 The monolithic `scraper_parser.py` (689 lines) was split into logical modules:
 
 ```
-Before:                          After:
-scraper_parser.py (689 lines)   ├── step_types.py (86 lines) - Type definitions
-                                ├── helpers.py (73 lines) - Utilities
-                                ├── executor.py (542 lines) - Execution logic
-                                ├── parser.py (79 lines) - Public API
-                                └── scraper_parser.py (72 lines) - Compatibility wrapper
+Before (v1.0):                After (v1.1):
+scraper_parser.py             ├── step_types.py - Concurrency types
+                              ├── handlers/ - Modular logic
+                              ├── parser.py - Async orchestrator
+                              ├── executor.py - Single-tab runner
+                              └── data_flow_handlers.py - I/O & Callbacks
 ```
 
 #### Module Responsibilities:
@@ -35,9 +35,9 @@ scraper_parser.py (689 lines)   ├── step_types.py (86 lines) - Type defini
   - File operations (PDF, downloads)
   - Tab/window management
   
-- **parser.py**: Public API
-  - `run_scraper()`
-  - `run_scraper_with_callback()`
+- **parser.py**: Public API & Orchestration
+  - `run_scraper()` - Now handles `ParallelTemplate` and `ParameterizedTemplate`.
+  - Concurrency management using `asyncio.gather`.
   
 - **scraper.py**: Low-level browser automation
   - Browser management
@@ -170,10 +170,13 @@ pytest --cov=src --cov-report=html
 4. **Multi-tab Support**: Handle complex navigation
 5. **PDF Generation**: Save pages as PDFs
 6. **File Downloads**: Download with auto-directory creation
-7. **Looping**: ForEach for multiple elements
-8. **Streaming**: Real-time result processing
-9. **Error Handling**: Graceful error management
-10. **Flexible Selectors**: ID, class, tag, XPath
+7. **Looping**: ForEach for elements and external lists
+8. **Parallelism**: Concurrent execution of multiple tasks
+9. **Advanced Data Flows**: Read/Write JSON, CSV, Excel, Text
+10. **Custom Callbacks**: Extend with Python closure functions
+11. **Streaming**: Real-time result processing
+12. **Error Handling**: Graceful error management
+13. **Flexible Selectors**: ID, class, tag, XPath
 
 ## Testing
 
@@ -364,14 +367,11 @@ No code changes needed - the compatibility wrapper handles everything!
 
 Potential areas for improvement:
 
-1. **Examples Directory**: Add real-world examples
-2. **CI/CD**: GitHub Actions for automated testing
-3. **Documentation Site**: Sphinx or MkDocs
-4. **More Actions**: Support for drag-drop, hover, etc.
-5. **Performance**: Parallel execution of tabs
-6. **Monitoring**: Progress callbacks, logging levels
-7. **Validation**: Schema validation for templates
-8. **CLI Tool**: Command-line interface
+1. **CI/CD**: GitHub Actions for automated testing
+2. **Documentation Site**: Sphinx or MkDocs
+3. **Monitoring**: Progress callbacks, logging levels
+4. **Validation**: Schema validation for templates
+5. **CLI Tool**: Command-line interface
 
 ## Dependencies
 

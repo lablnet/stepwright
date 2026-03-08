@@ -1,10 +1,54 @@
-# What's New in StepWright 1.0.0
+# What's New in StepWright
 
-## 🎉 Major Release - Enhanced Scraping Capabilities
+## 🚀 Version 1.1.0 - The Concurrency & Data Flow Update
 
-StepWright 1.0.0 introduces a comprehensive set of new features designed to make web scraping more robust, flexible, and powerful. This release focuses on reliability, conditional logic, advanced interactions, and expanded page manipulation capabilities.
+StepWright 1.1.0 is a massive update that evolves the library from a sequential task runner into a high-performance concurrent scraping engine. This release introduces parallel execution, parameterized templates, and advanced data flow capabilities.
 
 ---
+
+### ⚡ Parallel & Concurrent Execution
+Run multiple scraping workflows simultaneously across different tabs/pages.
+
+- **ParallelTemplate**: Group multiple `TabTemplate` objects to execute concurrently.
+- **ParameterizedTemplate**: Scaling up is now trivial. Pass a base template and a list of values (like keywords), and StepWright runs them all at once.
+
+```python
+# Run 5 searches concurrently
+task = ParameterizedTemplate(
+    template=search_base,
+    parameter_key="keyword",
+    values=["A", "B", "C", "D", "E"]
+)
+results = await run_scraper([task])
+```
+
+---
+
+### 📂 Advanced Data Flows
+Integrate external data sources directly into your scraping pipeline.
+
+- **readData**: Import seeds from **JSON, CSV, Excel (.xlsx), or Text**.
+- **writeData**: Export results back to any of these formats automatically.
+- **External Loops**: `foreach` loops can now iterate over lists loaded from files or previous step results.
+
+---
+
+### 🛠️ Custom Callbacks & Closure Hooks
+Complete flexibility for edge cases.
+
+- **Custom Actions**: Execute arbitrary Python functions with full access to the Playwright `page` and the `collector`.
+- **Custom Formats**: Provide your own reader/writer logic for unsupported file formats (like XML).
+
+```python
+def my_hook(page, collector, step):
+    return f"Processed {page.url}"
+
+BaseStep(id="hook", action="custom", callback=my_hook)
+```
+
+---
+
+## What's New in StepWright 1.0.0
 
 ## 🚀 New Features
 
