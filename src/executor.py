@@ -4,32 +4,22 @@
 
 from __future__ import annotations
 
-import pathlib
-import re
 from typing import Any, Callable, Dict, List, Optional
-from urllib.parse import urlparse, urljoin, urlencode, parse_qs
 
 from playwright.async_api import Page
-from playwright.async_api import async_playwright
 
 from .step_types import BaseStep, PaginationConfig, TabTemplate
 from .helpers import (
-    locator_for,
-    replace_index_placeholders,
     replace_data_placeholders,
-    _ensure_dir,
     maybe_await,
     flatten_nested_foreach_results,
     evaluate_condition,
     find_locator_with_fallbacks,
     apply_random_delay,
-    transform_data_regex,
-    apply_transform,
     wait_for_selector_if_configured,
 )
 from .scraper import (
     navigate,
-    input as input_action,
     click as click_action,
 )
 from .handlers import (
@@ -42,7 +32,6 @@ from .handlers import (
     # Loop handlers
     _handle_foreach,
     _handle_open,
-    clone_step_with_index,
     # Page action handlers
     _handle_reload,
     _handle_get_url,
@@ -75,12 +64,12 @@ async def execute_step(
     # Check conditional execution
     if step.skipIf:
         if await evaluate_condition(page, step.skipIf, collector):
-            print(f"   ⏭️  Skipping step (skipIf condition true)")
+            print("   ⏭️  Skipping step (skipIf condition true)")
             return
-    
+
     if step.onlyIf:
         if not await evaluate_condition(page, step.onlyIf, collector):
-            print(f"   ⏭️  Skipping step (onlyIf condition false)")
+            print("   ⏭️  Skipping step (onlyIf condition false)")
             return
 
     # Apply random delay if configured
@@ -89,14 +78,18 @@ async def execute_step(
     # Retry wrapper
     retry_count = step.retry or 0
     retry_delay = step.retryDelay or 1000
-    
+
     for attempt in range(retry_count + 1):
         try:
-            await _execute_step_internal(page, step, collector, on_result, scope_locator)
+            await _execute_step_internal(
+                page, step, collector, on_result, scope_locator
+            )
             return  # Success, exit retry loop
         except Exception as e:
             if attempt < retry_count:
-                print(f"   🔄 Retry {attempt + 1}/{retry_count} after {retry_delay}ms: {e}")
+                print(
+                    f"   🔄 Retry {attempt + 1}/{retry_count} after {retry_delay}ms: {e}"
+                )
                 await page.wait_for_timeout(retry_delay)
             else:
                 raise  # Re-raise on final attempt
@@ -124,28 +117,32 @@ async def _execute_step_internal(
                 scope_locator,
                 step.object_type,
                 step.object or "",
-                step.fallbackSelectors
+                step.fallbackSelectors,
             )
-            
+
             if not loc or await loc.count() == 0:
                 if step.continueOnEmpty is False:
                     raise ValueError(f"Input element not found: {step.object}")
                 print(f"   ⚠️  Input element not found: {step.object}")
                 return
-            
+
             # Clear if configured
             if step.clearBeforeInput is not False:  # Default True
                 await loc.first.clear()
-            
+
             # Input with delay if configured
-            value = replace_data_placeholders(step.value or "", collector) or step.value or ""
+            value = (
+                replace_data_placeholders(step.value or "", collector)
+                or step.value
+                or ""
+            )
             if step.inputDelay:
                 # Type character by character
                 for char in value:
                     await loc.first.type(char, delay=step.inputDelay)
             else:
                 await loc.first.fill(value)
-            
+
             if step.wait and step.wait > 0:
                 await page.wait_for_timeout(step.wait)
 
@@ -159,37 +156,43 @@ async def _execute_step_internal(
                 scope_locator,
                 step.object_type,
                 step.object or "",
-                step.fallbackSelectors
+                step.fallbackSelectors,
             )
-            
+
             if not loc or await loc.count() == 0:
                 if step.continueOnEmpty is False:
                     raise ValueError(f"Element not found: {step.object}")
                 print(f"   ⚠️  Element not found: {step.object} - skipping click")
                 return
-            
+
             # Check element state
             if step.requireVisible is not False:  # Default True for click
                 if not await loc.first.is_visible():
                     if step.forceClick:
-                        print(f"   ⚠️  Element not visible, using force click")
+                        print("   ⚠️  Element not visible, using force click")
                     else:
                         raise ValueError(f"Element not visible: {used_selector}")
-            
+
             if step.requireEnabled:
                 if not await loc.first.is_enabled():
                     raise ValueError(f"Element not enabled: {used_selector}")
-            
+
             # Perform click with modifiers
             try:
                 modifiers = step.clickModifiers or []
-                
+
                 if step.doubleClick:
                     await loc.first.dblclick(modifiers=modifiers)
                 elif step.rightClick:
-                    await loc.first.click(button="right", modifiers=modifiers, force=step.forceClick or False)
+                    await loc.first.click(
+                        button="right",
+                        modifiers=modifiers,
+                        force=step.forceClick or False,
+                    )
                 else:
-                    await loc.first.click(modifiers=modifiers, force=step.forceClick or False)
+                    await loc.first.click(
+                        modifiers=modifiers, force=step.forceClick or False
+                    )
             except Exception as e:
                 if step.skipOnError:
                     print(f"   ⚠️  Click failed (skipping): {e}")
@@ -303,7 +306,7 @@ async def execute_step_list(
     for step in steps:
         try:
             await execute_step(page, step, collected, on_result)
-        except Exception as e:
+        except Exception as _:
             if step.terminateonerror:
                 raise
             # else ignore to be future-proof
@@ -333,7 +336,9 @@ async def execute_tab(
             print(f"{log_prefix}👉 Clicking next button")
             try:
                 await click_action(
-                    page, pagination.nextButton.object_type, pagination.nextButton.object
+                    page,
+                    pagination.nextButton.object_type,
+                    pagination.nextButton.object,
                 )
                 if pagination.nextButton.wait:
                     await page.wait_for_timeout(pagination.nextButton.wait)
@@ -387,14 +392,19 @@ async def execute_tab(
                     if item and len(item) > 0:
                         # Flatten nested foreach results into an array (same logic as callback)
                         flattened_result = flatten_nested_foreach_results(item)
-                        results.append(flattened_result)
+                        if isinstance(flattened_result, list):
+                            results.extend(flattened_result)
+                        else:
+                            results.append(flattened_result)
                         # Callback already called in _handle_foreach for each item, no need to call again
                         result_index += 1
             else:
                 results.append(collected)
                 if on_result:
                     await maybe_await(on_result(collected, 0))
-        print(f"=== Finished tab {template.tab} - collected {len(results)} record(s) ===")
+        print(
+            f"=== Finished tab {template.tab} - collected {len(results)} record(s) ==="
+        )
         return results
 
     # default pagination-per-page loop
@@ -426,7 +436,10 @@ async def execute_tab(
                     if item and len(item) > 0:
                         # Flatten nested foreach results into an array (same logic as callback)
                         flattened_result = flatten_nested_foreach_results(item)
-                        results.append(flattened_result)
+                        if isinstance(flattened_result, list):
+                            results.extend(flattened_result)
+                        else:
+                            results.append(flattened_result)
                         # Callback already called in _handle_foreach for each item, no need to call again
                         result_index += 1
             else:

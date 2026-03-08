@@ -57,56 +57,95 @@ class BaseStep:
     terminateonerror: Optional[bool] = None
     subSteps: Optional[List["BaseStep"]] = None
     autoScroll: Optional[bool] = None
-    
+    index_key: Optional[str] = (
+        None  # custom index placeholder for loops (e.g., 'j', 'k')
+    )
+
     # Retry configuration
     retry: Optional[int] = None  # Number of retries on failure (default: 0)
     retryDelay: Optional[int] = None  # Delay between retries in ms (default: 1000)
-    
+
     # Conditional execution
-    skipIf: Optional[str] = None  # JavaScript expression to evaluate - skip step if true
-    onlyIf: Optional[str] = None  # JavaScript expression to evaluate - execute only if true
-    
+    skipIf: Optional[str] = (
+        None  # JavaScript expression to evaluate - skip step if true
+    )
+    onlyIf: Optional[str] = (
+        None  # JavaScript expression to evaluate - execute only if true
+    )
+
     # Element waiting and state
-    waitForSelector: Optional[str] = None  # Wait for selector before action (can be different from object)
-    waitForSelectorTimeout: Optional[int] = None  # Timeout for waitForSelector in ms (default: 30000)
-    waitForSelectorState: Optional[Literal["visible", "hidden", "attached", "detached"]] = None  # State to wait for
-    
+    waitForSelector: Optional[str] = (
+        None  # Wait for selector before action (can be different from object)
+    )
+    waitForSelectorTimeout: Optional[int] = (
+        None  # Timeout for waitForSelector in ms (default: 30000)
+    )
+    waitForSelectorState: Optional[
+        Literal["visible", "hidden", "attached", "detached"]
+    ] = None  # State to wait for
+
     # Multiple selector fallbacks
-    fallbackSelectors: Optional[List[Dict[str, str]]] = None  # List of {object_type, object} to try if primary fails
-    
+    fallbackSelectors: Optional[List[Dict[str, str]]] = (
+        None  # List of {object_type, object} to try if primary fails
+    )
+
     # Click enhancements
-    clickModifiers: Optional[List[ClickModifier]] = None  # Modifier keys for click (Control, Meta, Shift, Alt)
+    clickModifiers: Optional[List[ClickModifier]] = (
+        None  # Modifier keys for click (Control, Meta, Shift, Alt)
+    )
     doubleClick: Optional[bool] = None  # Perform double click instead of single
-    forceClick: Optional[bool] = None  # Force click even if element is not visible/actionable
+    forceClick: Optional[bool] = (
+        None  # Force click even if element is not visible/actionable
+    )
     rightClick: Optional[bool] = None  # Perform right click instead of left
-    
+
     # Input enhancements
-    clearBeforeInput: Optional[bool] = None  # Clear input field before typing (default: True)
-    inputDelay: Optional[int] = None  # Delay between keystrokes in ms (for human-like typing)
-    
+    clearBeforeInput: Optional[bool] = (
+        None  # Clear input field before typing (default: True)
+    )
+    inputDelay: Optional[int] = (
+        None  # Delay between keystrokes in ms (for human-like typing)
+    )
+
     # Data extraction enhancements
-    required: Optional[bool] = None  # If true, raise error if data extraction returns None/empty
-    defaultValue: Optional[str] = None  # Default value if extraction fails or returns None
+    required: Optional[bool] = (
+        None  # If true, raise error if data extraction returns None/empty
+    )
+    defaultValue: Optional[str] = (
+        None  # Default value if extraction fails or returns None
+    )
     regex: Optional[str] = None  # Regex pattern to extract/match from extracted data
-    regexGroup: Optional[int] = None  # Regex group to extract (default: 0 for full match)
+    regexGroup: Optional[int] = (
+        None  # Regex group to extract (default: 0 for full match)
+    )
     transform: Optional[str] = None  # JavaScript expression to transform extracted data
-    
+
     # Timeout configuration
     timeout: Optional[int] = None  # Step-specific timeout in ms (overrides default)
-    
+
     # Navigation enhancements
-    waitUntil: Optional[Literal["load", "domcontentloaded", "networkidle", "commit"]] = None  # For navigate/reload actions
-    
+    waitUntil: Optional[
+        Literal["load", "domcontentloaded", "networkidle", "commit"]
+    ] = None  # For navigate/reload actions
+
     # Human-like behavior
-    randomDelay: Optional[Dict[str, int]] = None  # {min: ms, max: ms} for random delay before action
-    
+    randomDelay: Optional[Dict[str, int]] = (
+        None  # {min: ms, max: ms} for random delay before action
+    )
+
     # Element state checks before action
-    requireVisible: Optional[bool] = None  # Require element to be visible before action (default: True for click)
+    requireVisible: Optional[bool] = (
+        None  # Require element to be visible before action (default: True for click)
+    )
     requireEnabled: Optional[bool] = None  # Require element to be enabled before action
-    
+
     # Skip/continue logic
-    skipOnError: Optional[bool] = None  # Skip step if error occurs (default: False, opposite of terminateonerror)
-    continueOnEmpty: Optional[bool] = None  # Continue execution even if element not found (default: True for some actions)
+    skipOnError: Optional[bool] = (
+        None  # Skip step if error occurs (default: False, opposite of terminateonerror)
+    )
+    continueOnEmpty: Optional[bool] = (
+        None  # Continue execution even if element not found (default: True for some actions)
+    )
 
 
 @dataclass

@@ -5,12 +5,18 @@
 from __future__ import annotations
 
 import pathlib
+import re
 from typing import Any, Callable, Dict, Optional
 
 from playwright.async_api import Page
 
 from ..step_types import BaseStep
-from ..helpers import locator_for, replace_index_placeholders, flatten_nested_foreach_results, maybe_await
+from ..helpers import (
+    locator_for,
+    replace_index_placeholders,
+    flatten_nested_foreach_results,
+    maybe_await,
+)
 
 
 async def _handle_foreach(
@@ -44,29 +50,65 @@ async def _handle_foreach(
                 pass
 
         # independent result per item
+        # Create a separate collector for each iteration
+        # Initialize with parent context (non-item_* keys) to preserve metadata
         item_collector: Dict[str, Any] = {}
+        for k, v in collector.items():
+            if not re.match(r"^item_\d+$", k):
+                item_collector[k] = v
+
+        # Use the specified index key or default to 'i'
+        index_key = step.index_key or "i"
 
         for s in step.subSteps or []:
-            cloned = clone_step_with_index(s, idx)
+            cloned = clone_step_with_index(s, idx, index_key)
             try:
-                await execute_step_fn(page, cloned, item_collector, on_result, scope_locator=current)
+                await execute_step_fn(
+                    page, cloned, item_collector, on_result, scope_locator=current
+                )
             except Exception as e:
                 print(f"⚠️  sub-step '{cloned.id}' failed: {e}")
                 if cloned.terminateonerror:
                     raise
 
-        collector[f"item_{idx}"] = item_collector
+        # Store the item collector
+        if step.key:
+            if step.key not in collector or not isinstance(collector[step.key], list):
+                collector[step.key] = []
 
-        if item_collector:
-            print(f"   📋 Collected data for item {idx}: {list(item_collector.keys())}")
-            # Call callback immediately for each foreach item (like TypeScript version)
-            # Flatten nested foreach results into an array
-            if on_result:
-                try:
-                    flattened_result = flatten_nested_foreach_results(item_collector)
-                    await maybe_await(on_result(flattened_result, idx))
-                except Exception as e:
-                    print(f"   ⚠️  Callback failed for item {idx}: {e}")
+            # Flatten if there are nested item_* keys before storing under the key
+            result_to_store = flatten_nested_foreach_results(item_collector)
+
+            if isinstance(result_to_store, list):
+                collector[step.key].extend(result_to_store)
+            else:
+                # If it's a single object, clean it of parent metadata before pushing
+                # this keeps nested objects clean and avoids redundant data
+                parent_keys = {
+                    k for k in collector.keys() if not re.match(r"^item_\d+$", k)
+                }
+                cleaned_item: Dict[str, Any] = {}
+                for k, v in item_collector.items():
+                    if k not in parent_keys or k == index_key:
+                        cleaned_item[k] = v
+                collector[step.key].append(cleaned_item)
+        else:
+            collector[f"item_{idx}"] = item_collector
+
+            if item_collector:
+                print(
+                    f"   📋 Collected data for item {idx}: {list(item_collector.keys())}"
+                )
+                # Call callback immediately for each foreach item (like TypeScript version)
+                # Flatten nested foreach results into an array
+                if on_result:
+                    try:
+                        flattened_result = flatten_nested_foreach_results(
+                            item_collector
+                        )
+                        await maybe_await(on_result(flattened_result, idx))
+                    except Exception as e:
+                        print(f"   ⚠️  Callback failed for item {idx}: {e}")
 
 
 async def _handle_open(
@@ -97,7 +139,9 @@ async def _handle_open(
             if not href.startswith("http"):
                 href = str(pathlib.PurePosixPath(href))
                 href = (
-                    str(pathlib.PurePosixPath(str(page.url))).rstrip("/") + "/" + href.lstrip("/")
+                    str(pathlib.PurePosixPath(str(page.url))).rstrip("/")
+                    + "/"
+                    + href.lstrip("/")
                 )
             new_page = await ctx.new_page()
             await new_page.goto(href, wait_until="networkidle")
@@ -129,17 +173,16 @@ async def _handle_open(
             raise
 
 
-def clone_step_with_index(step: BaseStep, idx: int) -> BaseStep:
+def clone_step_with_index(step: BaseStep, idx: int, char: str = "i") -> BaseStep:
     """Clone a step with index placeholders replaced"""
     cloned = BaseStep(**{**step.__dict__})
     # Only replace placeholders in string fields.
     if cloned.object and isinstance(cloned.object, str):
-        cloned.object = replace_index_placeholders(cloned.object, idx)
+        cloned.object = replace_index_placeholders(cloned.object, idx, char)
     if cloned.value and isinstance(cloned.value, str):
-        cloned.value = replace_index_placeholders(cloned.value, idx)
+        cloned.value = replace_index_placeholders(cloned.value, idx, char)
     if cloned.key and isinstance(cloned.key, str):
-        cloned.key = replace_index_placeholders(cloned.key, idx)
+        cloned.key = replace_index_placeholders(cloned.key, idx, char)
     if cloned.subSteps:
-        cloned.subSteps = [clone_step_with_index(s, idx) for s in cloned.subSteps]
+        cloned.subSteps = [clone_step_with_index(s, idx, char) for s in cloned.subSteps]
     return cloned
-

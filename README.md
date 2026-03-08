@@ -147,6 +147,7 @@ class BaseStep:
     ] = "navigate"
     value: Optional[str] = None
     key: Optional[str] = None
+    index_key: Optional[str] = None          # Custom index placeholder char (default: 'i')
     data_type: Optional[DataType] = None        # 'text' | 'html' | 'value' | 'default' | 'attribute'
     wait: Optional[int] = None
     terminateonerror: Optional[bool] = None
@@ -265,27 +266,48 @@ BaseStep(
 )
 ```
 
-### ForEach Loop
-Process multiple elements.
-
-```python
 BaseStep(
-    id="process_items",
+    id="process_categories",
     action="foreach",
     object_type="class",
-    object="item",
+    object="category",
+    index_key="i", # Default index char
     subSteps=[
         BaseStep(
-            id="get_item_title",
+            id="get_category_name",
             action="data",
             object_type="tag",
-            object="h2",
-            key="title",
+            object="h1",
+            key="category",
             data_type="text"
+        ),
+        BaseStep(
+            id="process_sub_items",
+            action="foreach",
+            object_type="xpath",
+            # Use index placeholder in nested selector
+            object="(//div[@class='category'])[{{i_plus1}}]//li[@class='item']",
+            index_key="j", # Custom index for nested loop
+            key="products", # Results collected into an array under this key
+            subSteps=[
+                BaseStep(
+                    id="get_item_name",
+                    action="data",
+                    object_type="tag",
+                    object="span",
+                    key="name",
+                    data_type="text"
+                )
+            ]
         )
     ]
 )
 ```
+
+#### Context Merging in Nested Loops
+StepWright automatically handles context merging in nested loops. 
+- If you **do not** specify a `key` for an inner loop, the result will be flattened, and all parent data (like `category`) will be merged into every child record.
+- If you **do** specify a `key` (e.g., `key="products"`), the items will be collected into a structured array, keeping your data hierarchical.
 
 ### File Operations
 
@@ -446,22 +468,28 @@ BaseStep(
 )
 ```
 
-### Index Placeholders
-Use loop index in foreach steps:
-
-```python
 BaseStep(
-    id="process_items",
+    id="process_categories",
     action="foreach",
     object_type="class",
-    object="item",
+    object="category",
+    index_key="i",  # You can define custom index letters
     subSteps=[
         BaseStep(
-            id="save_item",
-            action="savePDF",
-            value="./output/item_{{i}}.pdf",      # i = 0, 1, 2, ...
-            # or
-            value="./output/item_{{i_plus1}}.pdf" # i_plus1 = 1, 2, 3, ...
+            id="process_items",
+            action="foreach",
+            object_type="xpath",
+            # Use outer loop index 'i' in inner selector
+            object="(//div[@class='category'])[{{i_plus1}}]//li",
+            index_key="j", # Inner loop uses 'j'
+            subSteps=[
+                BaseStep(
+                    id="save_item",
+                    action="savePDF",
+                    # Access inner index 'j' and outer index 'i'
+                    value="./output/cat_{{i}}/item_{{j}}.pdf"
+                )
+            ]
         )
     ]
 )
