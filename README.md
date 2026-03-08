@@ -8,6 +8,18 @@
   <strong>A declarative, step-by-step approach to web automation and data extraction with Playwright.</strong>
 </p>
 
+<p align="center">
+  <a href="https://github.com/lablnet/stepwright/actions">
+    <img src="https://github.com/lablnet/stepwright/actions/workflows/tests.yml/badge.svg" alt="Tests" />
+  </a>
+  <a href="https://codecov.io/gh/lablnet/stepwright">
+    <img src="https://codecov.io/gh/lablnet/stepwright/branch/main/graph/badge.svg" alt="Coverage" />
+  </a>
+  <a href="https://pypi.org/project/stepwright/">
+    <img src="https://img.shields.io/pypi/v/stepwright.svg" alt="PyPI version" />
+  </a>
+</p>
+
 ## Overview
 
 StepWright completely abstracts away the complexity of raw browser automation scripts. Instead of writing imperative `page.locator(...).click()` commands buried deep in `try/except` loops, StepWright allows you to define **declarative scraping workflows** using dictionaries or Python Dataclasses.

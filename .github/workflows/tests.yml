@@ -21,12 +21,12 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     
     - name: Cache pip packages
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/pyproject.toml') }}
@@ -48,10 +48,11 @@ jobs:
         pytest -v --cov=src --cov-report=xml --cov-report=term
     
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
       if: matrix.python-version == '3.11'
       with:
-        file: ./coverage.xml
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: ./coverage.xml
         flags: unittests
         name: codecov-umbrella
         fail_ci_if_error: false        
@@ -65,7 +66,7 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
     
@@ -76,12 +77,44 @@ jobs:
         playwright install chromium
         playwright install-deps chromium
     
-    - name: Test basic example
+    - name: Run example scripts
       run: |
+        # Basic walkthrough
         timeout 30 python examples/basic_example.py || true
-    
-    - name: Test advanced example (with timeout)
-      continue-on-error: true
-      run: |
+        # Advanced interaction logic
+        timeout 30 python examples/advanced_interactions.py || true
+        # Data flow (read CSV/write JSON)
+        timeout 30 python examples/custom_data_flow.py || true
+        # Nested patterns
+        timeout 30 python examples/nested_loops.py || true
+        # Concurrency & scaling
+        timeout 60 python examples/parallel_scraping_showcase.py || true
+        # Kitchen sink
         timeout 60 python examples/advanced_example.py || true
+
+  build-docs:
+    name: Verify Documentation Build
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10
+        
+    - name: Set up Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'pnpm'
+        cache-dependency-path: docs-site/pnpm-lock.yaml
+        
+    - name: Install dependencies
+      run: cd docs-site && pnpm install
+      
+    - name: Build documentation
+      run: cd docs-site && pnpm run docs:build
 
