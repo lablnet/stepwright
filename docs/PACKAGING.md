@@ -86,7 +86,7 @@ This creates:
 twine check dist/*
 
 # List wheel contents
-unzip -l dist/stepwright-0.1.0-py3-none-any.whl
+unzip -l dist/stepwright-1.1.0-py3-none-any.whl
 ```
 
 ## Testing the Package
@@ -99,7 +99,7 @@ python -m venv test_env
 source test_env/bin/activate
 
 # Install from wheel
-pip install dist/stepwright-0.1.0-py3-none-any.whl
+pip install dist/stepwright-1.1.0-py3-none-any.whl
 
 # Test import and usage
 python -c "from stepwright import run_scraper, TabTemplate, BaseStep; print('Success!')"
@@ -117,7 +117,7 @@ python -m venv test_env2
 source test_env2/bin/activate
 
 # Install from source
-pip install dist/stepwright-0.1.0.tar.gz
+pip install dist/stepwright-1.1.0.tar.gz
 
 # Test
 python -c "import stepwright; print(stepwright.__version__)"
@@ -196,8 +196,8 @@ git push origin v0.2.0
 Follow [Semantic Versioning](https://semver.org/):
 
 - **MAJOR** (1.0.0): Incompatible API changes
-- **MINOR** (0.1.0): New features, backward compatible
-- **PATCH** (0.0.1): Bug fixes, backward compatible
+- **MINOR** (1.1.0): New features, backward compatible
+- **PATCH** (0.1.1): Bug fixes, backward compatible
 
 ## Pre-release Checklist
 
