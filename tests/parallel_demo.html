@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Parallel Demo</title>
+    <style>
+        .product {
+            margin: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Product Search Simulation</h1>
+    <div id="status">Ready</div>
+    <div id="results">
+        <!-- Results will be injected based on query param -->
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const q = urlParams.get('q') || 'default';
+        const statusDiv = document.getElementById('status');
+        const resultsDiv = document.getElementById('results');
+
+        statusDiv.innerText = `Searching for: ${q}`;
+
+        // Simulate loading
+        setTimeout(() => {
+            if (q === 'laptop') {
+                resultsDiv.innerHTML = `
+                    <div class="product">
+                        <span class="name">Gaming Laptop</span>
+                        <span class="price">$1200</span>
+                    </div>
+                    <div class="product">
+                        <span class="name">Office Laptop</span>
+                        <span class="price">$800</span>
+                    </div>
+                `;
+            } else if (q === 'phone') {
+                resultsDiv.innerHTML = `
+                    <div class="product">
+                        <span class="name">iPhone 15</span>
+                        <span class="price">$999</span>
+                    </div>
+                    <div class="product">
+                        <span class="name">Samsung S24</span>
+                        <span class="price">$899</span>
+                    </div>
+                `;
+            } else {
+                resultsDiv.innerHTML = `<div class="product"><span class="name">${q} Generic Item</span><span class="price">$10</span></div>`;
+            }
+            statusDiv.innerText = 'Completed';
+        }, 500);
+    </script>
+</body>
+
+</html>

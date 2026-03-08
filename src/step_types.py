@@ -5,11 +5,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Callable, Dict, List, Literal, Optional, Union
 
 # Type aliases
 SelectorType = Literal["id", "class", "tag", "xpath"]
-DataType = Literal["text", "html", "value", "default", "attribute"]
+DataType = Literal["text", "html", "value", "default", "attribute", "custom"]
 ClickModifier = Literal["Control", "Meta", "Shift", "Alt"]
 
 
@@ -54,6 +54,9 @@ class BaseStep:
         "select",
         "uploadFile",
         "virtualScroll",
+        "readData",
+        "writeData",
+        "custom",
     ] = "navigate"
     value: Optional[str] = None
     key: Optional[str] = None
@@ -65,6 +68,7 @@ class BaseStep:
     index_key: Optional[str] = (
         None  # custom index placeholder for loops (e.g., 'j', 'k')
     )
+    callback: Optional[Callable] = None  # Generic callback for custom actions/formats
 
     # IFrame support
     frameSelector: Optional[str] = None
@@ -207,6 +211,22 @@ class TabTemplate:
     perPageSteps: Optional[List[BaseStep]] = None
     steps: Optional[List[BaseStep]] = None
     pagination: Optional[PaginationConfig] = None
+
+
+@dataclass
+class ParallelTemplate:
+    """Groups multiple templates to run concurrently"""
+
+    templates: List[Union[TabTemplate, "ParallelTemplate", "ParameterizedTemplate"]]
+
+
+@dataclass
+class ParameterizedTemplate:
+    """Generates multiple concurrent tabs from one template using different values"""
+
+    template: TabTemplate
+    parameter_key: str  # The key to replace in steps (e.g., 'keyword')
+    values: List[Any]  # The values to iterate over
 
 
 @dataclass

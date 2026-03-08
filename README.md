@@ -28,6 +28,9 @@ A powerful web scraping library built with Playwright that provides a declarativ
 - 🌀 **Virtual Scroll**: Efficiently collect data from infinite-scroll or virtualized lists
 - 🖱️ **Advanced Interactions**: Support for hover, drag & drop, and multi-select actions
 - 📤 **File Uploads**: Native support for uploading files to input elements
+- 🚀 **Parallel Execution**: Run multiple scraping tasks concurrently with `ParallelTemplate` and `ParameterizedTemplate`
+- 📂 **Advanced Data Flows**: Read/Write data from JSON, CSV, Excel, and Text files directly in the flow
+- 🛠️ **Custom Callbacks**: Extend functionality with custom Python closure functions for actions and file formats
 
 ## Installation
 
@@ -1130,6 +1133,103 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
+## Advanced Features
+
+### Parallelism and Concurrency
+
+StepWright allows you to run multiple templates concurrently to significantly speed up your scraping tasks.
+
+#### `ParameterizedTemplate`
+Run the same scraping logic for multiple parameters (e.g., keywords) simultaneously.
+
+```python
+import asyncio
+from stepwright import run_scraper, TabTemplate, BaseStep, ParameterizedTemplate
+
+async def main():
+    # Define a base template with a placeholder
+    search_base = TabTemplate(
+        tab="search_{{keyword}}",
+        steps=[
+            BaseStep(id="nav", action="navigate", value="https://example.com/search?q={{keyword}}"),
+            BaseStep(id="data", action="data", object="h1", key="title")
+        ]
+    )
+
+    # Run for multiple keywords in parallel
+    task = ParameterizedTemplate(
+        template=search_base,
+        parameter_key="keyword",
+        values=["laptop", "phone", "monitor"]
+    )
+
+    results = await run_scraper([task])
+    print(f"Scraped {len(results)} items concurrently.")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### Advanced Data Flows
+
+You can read input data from files and write results directly to various formats (JSON, CSV, Excel, Text).
+
+```python
+steps = [
+    # Read search terms from a JSON file
+    BaseStep(id="load", action="readData", value="keywords.json", data_type="json", key="queue"),
+    
+    # Loop over the loaded list
+    BaseStep(id="loop", action="foreach", value="{{queue}}", subSteps=[
+        BaseStep(id="nav", action="navigate", value="https://example.com/item/{{item}}"),
+        BaseStep(id="extract", action="data", object=".name", key="name")
+    ], key="results"),
+    
+    # Write all results to a CSV
+    BaseStep(id="save", action="writeData", value="results.csv", data_type="csv", key="results")
+]
+```
+
+### Custom Callbacks
+
+Extend StepWright by providing your own Python logic for actions or file parsing.
+
+#### Custom Action Callback
+Perform complex interactions or calculations directly with the Playwright `page` and `collector`.
+
+```python
+def my_custom_logic(page, collector, step):
+    # Calculate something or modify collector
+    current_url = page.url
+    return f"Processed {current_url} at step {step.id}"
+
+step = BaseStep(
+    id="custom-hook",
+    action="custom",
+    callback=my_custom_logic,
+    key="status_msg"
+)
+```
+
+#### Custom File Format Callback
+Handle proprietary or unsupported file formats by providing a custom reader/writer.
+
+```python
+def my_xml_reader(path, step):
+    import xml.etree.ElementTree as ET
+    tree = ET.parse(path)
+    return [el.text for el in tree.findall('.//item')]
+
+step = BaseStep(
+    id="load-xml",
+    action="readData",
+    value="data.xml",
+    data_type="custom",
+    callback=my_xml_reader,
+    key="items"
+)
+```
+
 ## Development
 
 ### Setup
@@ -1192,11 +1292,14 @@ stepwright/
 │   │   ├── file_handlers.py      # File download/PDF handlers
 │   │   ├── loop_handlers.py      # Foreach/open handlers
 │   │   ├── page_actions.py       # Page-related actions (reload, getUrl, etc.)
-│   │   └── interaction_handlers.py # Hover, select, drag&drop, virtual scroll
+│   │   ├── interaction_handlers.py # Hover, select, drag&drop, virtual scroll
+│   │   └── data_flow_handlers.py   # NEW: File I/O and custom callbacks
 │   └── scraper_parser.py  # Backward compatibility
 ├── tests/
 │   ├── __init__.py
 │   ├── conftest.py        # Pytest configuration
+│   ├── parallel_demo.html  # Fixture for parallel/flow testing
+│   ├── test_parallel_flows.py # NEW: Parallelism and data flow tests
 │   ├── test_page.html     # Test HTML page
 │   ├── test_page_enhanced.html  # Enhanced test page for expansion
 │   ├── advanced_demo.html  # Demo page for advanced interactions

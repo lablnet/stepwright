@@ -27,25 +27,53 @@ async def _handle_foreach(
     on_result: Optional[Callable[[Dict[str, Any], int], Any]] = None,
 ) -> None:
     """Handle foreach loop action"""
-    if not step.object:
-        raise ValueError("foreach step requires object as locator")
+    count = 0
+    items_to_loop = []
+
+    if step.object:
+        loc_all = locator_for(page, step.object_type, step.object)
+        try:
+            await loc_all.first.wait_for(state="attached", timeout=step.wait or 5000)
+        except Exception:
+            pass
+        count = await loc_all.count()
+        items_to_loop = [
+            (loc_all.nth(i), None) for i in range(count)
+        ]  # (locator, data)
+        print(f"   🔁 foreach found {count} items for selector {step.object}")
+    elif step.value:
+        # Check for list in collector via placeholder e.g. {{keywords}}
+        placeholder_match = re.search(r"\{\{([\w\-]+)\}\}", step.value)
+        if placeholder_match:
+            placeholder_key = placeholder_match.group(1)
+            actual_data = collector.get(placeholder_key)
+
+            if isinstance(actual_data, list):
+                items_to_loop = [(None, item) for item in actual_data]
+                count = len(items_to_loop)
+                print(f"   🔁 foreach found {count} items from source {step.value}")
+            else:
+                print(
+                    f"   ⚠️  foreach source {step.value} (key: {placeholder_key}) is not a list or not found"
+                )
+                return
+        else:
+            print(
+                f"   ⚠️  foreach step.value '{step.value}' does not contain a valid placeholder {{key}}"
+            )
+            return
+    else:
+        raise ValueError(
+            "foreach step requires either 'object' (locator) or 'value' (data source)"
+        )
+
     if not step.subSteps:
         raise ValueError("foreach step requires subSteps")
 
-    loc_all = locator_for(page, step.object_type, step.object)
-    try:
-        await loc_all.first.wait_for(state="attached", timeout=step.wait or 5000)
-    except Exception:
-        pass
-
-    count = await loc_all.count()
-    print(f"   🔁 foreach found {count} items for selector {step.object}")
-
-    for idx in range(count):
-        current = loc_all.nth(idx)
-        if step.autoScroll is not False:
+    for idx, (current_locator, current_data) in enumerate(items_to_loop):
+        if current_locator and step.autoScroll is not False:
             try:
-                await current.scroll_into_view_if_needed()
+                await current_locator.scroll_into_view_if_needed()
             except Exception:
                 pass
 
@@ -62,9 +90,20 @@ async def _handle_foreach(
 
         for s in step.subSteps or []:
             cloned = clone_step_with_index(s, idx, index_key)
+
+            # If we are looping over raw data, inject the current item into the collector
+            if not step.object:
+                item_collector["item"] = current_data
+                if isinstance(current_data, dict):
+                    item_collector.update(current_data)
+
             try:
                 await execute_step_fn(
-                    page, cloned, item_collector, on_result, scope_locator=current
+                    page,
+                    cloned,
+                    item_collector,
+                    on_result,
+                    scope_locator=current_locator,
                 )
             except Exception as e:
                 print(f"⚠️  sub-step '{cloned.id}' failed: {e}")

@@ -54,6 +54,10 @@ from .handlers import (
     _handle_drag_and_drop,
     _handle_upload,
     _handle_virtual_scroll,
+    # Data flow handlers
+    _handle_read_data,
+    _handle_write_data,
+    _handle_custom_callback,
 )
 
 
@@ -127,7 +131,8 @@ async def _execute_step_internal(
 
     try:
         if step.action == "navigate":
-            await navigate(page, step.value or "")
+            value = replace_data_placeholders(step.value or "", collector)
+            await navigate(page, value)
 
         elif step.action == "input":
             # Wait for selector if configured
@@ -138,7 +143,7 @@ async def _execute_step_internal(
                 page,
                 current_scope,
                 step.object_type,
-                step.object or "",
+                replace_data_placeholders(step.object or "", collector),
                 step.fallbackSelectors,
             )
 
@@ -177,7 +182,7 @@ async def _execute_step_internal(
                 page,
                 current_scope,
                 step.object_type,
-                step.object or "",
+                replace_data_placeholders(step.object or "", collector),
                 step.fallbackSelectors,
             )
 
@@ -310,6 +315,15 @@ async def _execute_step_internal(
             await _handle_virtual_scroll(
                 page, step, collector, _execute_step_internal, on_result, current_scope
             )
+
+        elif step.action == "readData":
+            await _handle_read_data(page, step, collector)
+
+        elif step.action == "writeData":
+            await _handle_write_data(page, step, collector)
+
+        elif step.action == "custom":
+            await _handle_custom_callback(page, step, collector)
 
         # trailing wait
         if step.wait and step.wait > 0:

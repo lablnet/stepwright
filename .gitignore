@@ -133,6 +133,7 @@ dmypy.json
 # Project specific
 downloads/
 output/
+data/
 integration-downloads/
 integration-output/
 *.pdf
