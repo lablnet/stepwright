@@ -43,6 +43,15 @@ export default withMermaid(defineConfig({
                         { text: 'Parallelism & Flow', link: '/guide/advanced/parallelism' },
                         { text: 'Data Flows', link: '/guide/advanced/data-flows' },
                         { text: 'Interactions', link: '/guide/advanced/interactions' },
+                        { text: 'Pagination & Scrolling', link: '/guide/advanced/pagination' },
+                        { text: 'Downloads & PDFs', link: '/guide/advanced/downloads-and-pdfs' },
+                        { text: 'Navigating IFrames', link: '/guide/advanced/iframes' },
+                    ]
+                },
+                {
+                    text: 'Reference',
+                    items: [
+                        { text: 'Examples & Use Cases', link: '/guide/examples' },
                     ]
                 }
             ],
