@@ -10,12 +10,12 @@ export default withMermaid(defineConfig({
     lastUpdated: true,
 
     head: [
-        ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
+        ['link', { rel: 'icon', type: 'image/png', href: '/logo.png' }],
         ['meta', { name: 'theme-color', content: '#3eaf7c' }],
     ],
 
     themeConfig: {
-        logo: '/logo.svg',
+        logo: '/logo.png',
 
         nav: [
             { text: 'Home', link: '/' },

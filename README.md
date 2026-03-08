@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/lablnet/stepwright/main/docs-site/public/logo.svg" alt="StepWright Logo" width="120" />
+  <img src="https://raw.githubusercontent.com/lablnet/stepwright/main/docs-site/src/public/logo.png" alt="StepWright Logo" width="120" />
 </div>
 
 <h1 align="center">StepWright</h1>
