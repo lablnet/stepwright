@@ -1,0 +1,27 @@
+
+> docs-site@1.0.0 docs:build /Users/lablnet/projects/lablnet/stepwright/docs-site
+> vitepress build .
+
+
+  vitepress v1.6.4
+
+- building client + server bundles...
+
+
+(!) Found dead link ./../advanced/data-flows in file guide/browser-options.md
+
+If this is expected, you can disable this check via config. Refer: https://vitepress.dev/reference/site-config#ignoredeadlinks
+
+x Build failed in 4.36s
+[31m✖[0m building client + server bundles...
+build error:
+[vitepress] 1 dead link(s) found.
+[vitepress] 1 dead link(s) found.
+    at Object.renderStart (file:///Users/lablnet/projects/lablnet/stepwright/docs-site/node_modules/.pnpm/vitepress@1.6.4_@algolia+client-search@5.49.1_postcss@8.5.8_search-insights@2.17.3/node_modules/vitepress/dist/node/chunk-D3CUZ4fa.js:45027:15)
+    at file:///Users/lablnet/projects/lablnet/stepwright/docs-site/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/es/shared/node-entry.js:22571:40
+    at async Promise.all (index 0)
+    at async PluginDriver.hookParallel (file:///Users/lablnet/projects/lablnet/stepwright/docs-site/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/es/shared/node-entry.js:22481:9)
+    at async Bundle.generate (file:///Users/lablnet/projects/lablnet/stepwright/docs-site/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/es/shared/node-entry.js:20603:13)
+    at async file:///Users/lablnet/projects/lablnet/stepwright/docs-site/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/es/shared/node-entry.js:23558:27
+    at async catchUnfinishedHookActions (file:///Users/lablnet/projects/lablnet/stepwright/docs-site/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/es/shared/node-entry.js:22925:16)
+ ELIFECYCLE  Command failed with exit code 1.

@@ -1,0 +1,27 @@
+{
+  "name": "docs-site",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "docs:dev": "vitepress dev .",
+    "docs:build": "vitepress build .",
+    "docs:preview": "vitepress preview ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@braintree/sanitize-url": "^7.1.2",
+    "cytoscape": "^3.33.1",
+    "cytoscape-cose-bilkent": "^4.1.0",
+    "debug": "^4.4.3",
+    "mermaid": "^11.12.3",
+    "vitepress": "1.6.4",
+    "vitepress-plugin-mermaid": "^2.0.17",
+    "vue": "3.5.29"
+  },
+  "dependencies": {
+    "dayjs": "^1.11.19"
+  }
+}
