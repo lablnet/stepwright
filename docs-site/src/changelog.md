@@ -1,105 +1,47 @@
 # What's New in StepWright
 
-## 🚀 Version 1.6.0 - Page Controls & Actions Update
+## 🚀 Version 2.0.0 - The Next-Generation Scraping Engine
 
-StepWright 1.6.0 introduces 6 new declarative step actions: `press`, `type`, `dialog`, `mouseMove`, `waitForNavigation`, and `setHeaders`.
-
----
-
-### ⌨️ Key Presses & Typing (`press`, `type`)
-Send keyboard key press events (`"Enter"`, `"Control+A"`, `"Backspace"`) and type text with human-like key delays (`inputDelay`).
-
-### 💬 Dialog Auto-Handling (`dialog`)
-Automatically accept or dismiss browser alert, confirm, or prompt popups during step execution (`value="accept"` or `value="dismiss"`).
-
-### 🖱️ Mouse Movements (`mouseMove`)
-Move mouse cursor to DOM elements or (x, y) coordinates smoothly before interaction.
-
-### ⏳ Navigation Waits & Headers (`waitForNavigation`, `setHeaders`)
-Explicitly wait for page load states (`"networkidle"`, `"domcontentloaded"`) and dynamically inject extra HTTP request headers.
+StepWright 2.0.0 is a milestone major release that elevates StepWright into an enterprise-grade, anti-bot resilient, multi-engine web scraping & automation platform.
 
 ---
 
-## 🚀 Version 1.5.0 - Stealth & Anti-Bot Evasion Update
-
-StepWright 1.5.0 introduces automated stealth fingerprint evasion (`stealth=True`), proxy routing (`ProxyConfig`), and CAPTCHA / Cloudflare challenge detection hooks (`on_captcha`).
-
----
-
-### 🥷 Stealth Mode (`stealth=True`)
-Mask automation signatures automatically across browser contexts by spoofing `navigator.webdriver`, `navigator.languages`, `navigator.plugins`, `window.chrome`, `Permissions` API, and WebGL vendor/renderer flags.
-
-### 🌐 Proxy Support (`proxy` & `ProxyConfig`)
-Configure HTTP, HTTPS, or SOCKS5 proxies with optional authentication credentials per `TabTemplate` or globally in `RunOptions`.
-
-### 🚨 CAPTCHA Detection Hooks (`on_captcha`)
-Detect CAPTCHA or Cloudflare challenge pages automatically during execution and invoke custom handler callbacks (`captcha_selector`, `on_captcha`).
+### 🥷 1. Stealth Mode & Anti-Bot Evasion Features
+- **Automated Stealth Fingerprint Evasion (`stealth=True`)**: Automatically injects init scripts (`add_init_script`) to mask `navigator.webdriver`, `navigator.languages`, `navigator.plugins`, `window.chrome`, `Permissions` API, and WebGL UNMASKED_VENDOR/RENDERER flags.
+- **Proxy Configuration (`proxy` & `ProxyConfig`)**: Pass HTTP, HTTPS, or SOCKS5 proxies with optional authentication credentials per `TabTemplate` or globally in `RunOptions`.
+- **CAPTCHA & Challenge Detection Hooks (`on_captcha`)**: Detect Cloudflare challenge frames or CAPTCHA elements (`captcha_selector`) during step execution and invoke custom resolution callback handlers (`on_captcha`).
 
 ---
 
-## 🚀 Version 1.4.0 - Network & API Interception Update
-
-StepWright 1.4.0 introduces the `intercept` step action for capturing background JSON/XHR API responses, resource blocking (`block_resources`), and custom HTTP header injection (`extra_http_headers`).
-
----
-
-### 📡 API Response Interception (`intercept`)
-Capture background JSON/XHR/Fetch responses matching URL patterns (e.g. `"**/api/v1/products*"`) directly into collector memory without parsing DOM elements.
-
-### 🛡️ Resource Blocking (`block_resources`)
-Block unwanted heavy resource types (`image`, `stylesheet`, `font`, `media`, `script`) per template or globally in `RunOptions` for ultra-fast text/data extraction.
-
-### 🔑 Custom Request Headers (`extra_http_headers`)
-Inject custom HTTP request headers (e.g. Authorization tokens, Referer, Accept-Language) per template or globally.
+### ⌨️ 2. Additional Step Actions & Page Controls
+- **6 New Declarative Actions**: `press`, `type`, `dialog`, `mouseMove`, `waitForNavigation`, `setHeaders`.
+- **Keyboard Key Presses (`press`)**: Send keyboard key press events (`"Enter"`, `"Control+A"`, `"Backspace"`) to targeted DOM elements or page keyboard.
+- **Typing with Delay (`type` / `clickAndType`)**: Focus elements, clear inputs (`clearBeforeInput=True`), and type text with human-like key delays (`inputDelay`).
+- **Dialog Auto-Handling (`dialog`)**: Automatically accept or dismiss browser alert, confirm, or prompt popups during step execution (`value="accept"` or `value="dismiss"`).
+- **Mouse Movements (`mouseMove`)**: Smoothly move mouse cursor to target DOM elements (`object`) or coordinate pairs (`value="350,450"`).
+- **Navigation State Waits & Headers (`waitForNavigation`, `setHeaders`)**: Explicitly wait for page load states (`"networkidle"`, `"domcontentloaded"`) and dynamically inject extra HTTP request headers.
 
 ---
 
-## 🚀 Version 1.3.0 - Concurrency, Multi-Engine & Emulation Update
-
-StepWright 1.3.0 introduces support for multi-engine browser selection (`chromium`, `firefox`, `webkit`), device emulation presets (e.g. `"iPhone 13"`), environment context configuration, and concurrency rate limiting.
-
----
-
-### 🌐 Multi-Engine Selection
-Select your target browser engine dynamically via `RunOptions(engine="firefox")` or per `TabTemplate(engine="webkit")`.
-
-### 📱 Mobile & Device Emulation
-Emulate devices using Playwright's device catalog presets (`device="iPhone 13"`, `device="Pixel 5"`). Supports custom Viewports, User-Agent strings, Locales, Timezones, Geolocation, and Permissions.
-
-### 🚦 Concurrency & Rate Limiting Controls
-Prevent server overload and IP blocks by setting `max_concurrency` semaphore limits and `rate_limit_delay_ms` launch delays across `ParallelTemplate` and `ParameterizedTemplate` workflows.
+### 📡 3. Network & API Request Interception
+- **`intercept` Step Action**: Capture background JSON/XHR/Fetch REST API responses matching URL patterns/globs directly into collector memory without DOM parsing.
+- **Resource Blocking (`block_resources`)**: Abort heavy asset types (`image`, `stylesheet`, `font`, `media`, `script`) per template or globally in `RunOptions` for ultra-fast text/API extraction.
+- **Custom HTTP Headers (`extra_http_headers`)**: Set custom request headers (e.g. Authorization tokens, Referer, Accept-Language) per template or globally.
 
 ---
 
-## 🚀 Version 1.2.0 - Developer Experience & Validation Update
-
-StepWright 1.2.0 introduces static template format validation, expected data flow validation, enhanced step debugging options, and runtime execution metrics tracking.
-
----
-
-### 🔍 Static Template & Data Validation
-Exposed public validation APIs to verify scraping templates before launching browser instances.
-
-- **`validate_template_format(templates)`**: Statically checks step configuration, action types, selector types, and mandatory parameter fields without starting Playwright.
-- **`validate_template_data(templates, expected_keys)`**: Verifies that the template data flow extracts all required collector output keys.
-
-```python
-from stepwright import validate_template_format, validate_template_data
-
-# Validate format
-format_res = validate_template_format(template)
-if not format_res.is_valid:
-    print("Format errors:", format_res.errors)
-
-# Validate output keys
-data_res = validate_template_data(template, ["title", "price"])
-```
+### 🌐 4. Multi-Engine, Device Emulation & Concurrency Controls
+- **Multi-Engine Browser Selection**: Switch between `chromium`, `firefox`, and `webkit` browser engines dynamically via `RunOptions(engine="firefox")` or per `TabTemplate`.
+- **Mobile Device Emulation**: Emulate mobile devices using Playwright's device catalog presets (`device="iPhone 13"`, `device="Pixel 5"`). Supports custom Viewports, User-Agent strings, Locales, Timezones, Geolocation, and Permissions.
+- **Concurrency Rate Limiting**: Prevent server overload and IP blocks using `max_concurrency` semaphore limits and `rate_limit_delay_ms` launch delays across `ParallelTemplate` and `ParameterizedTemplate` workflows.
 
 ---
 
-### ⏱️ Execution Metrics & Debugging Options
-- **`debug_on_failure`**: Setting `RunOptions(debug_on_failure=True)` prints detailed step diagnostics (step ID, action, selector, value, current URL, error trace) whenever a step fails.
-- **`run_scraper_with_metrics`**: Returns an `ExecutionMetrics` object detailing total execution duration, step execution counts, failure counts, and per-step timing metrics (`StepMetric`).
+### 🔍 5. Developer Experience, Static Validation & Metrics
+- **Static Template Format Validation (`validate_template_format`)**: Statically checks step configuration, action types, selector types, and mandatory parameter fields without launching Playwright.
+- **Expected Data Flow Validation (`validate_template_data`)**: Verifies that the template data flow extracts all required collector output keys.
+- **Debug Diagnostic Trace (`debug_on_failure=True`)**: Prints detailed step diagnostics (step ID, action, selector, value, current URL, error trace) whenever a step fails.
+- **Execution Metrics Tracking (`run_scraper_with_metrics`)**: Returns an `ExecutionMetrics` object detailing total execution duration, step execution counts, failure counts, and per-step timing metrics (`StepMetric`).
 
 ---
 
