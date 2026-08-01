@@ -1,5 +1,22 @@
 # What's New in StepWright
 
+## 🚀 Version 1.5.0 - Stealth & Anti-Bot Evasion Update
+
+StepWright 1.5.0 introduces automated stealth fingerprint evasion (`stealth=True`), proxy routing (`ProxyConfig`), and CAPTCHA / Cloudflare challenge detection hooks (`on_captcha`).
+
+---
+
+### 🥷 Stealth Mode (`stealth=True`)
+Mask automation signatures automatically across browser contexts by spoofing `navigator.webdriver`, `navigator.languages`, `navigator.plugins`, `window.chrome`, `Permissions` API, and WebGL vendor/renderer flags.
+
+### 🌐 Proxy Support (`proxy` & `ProxyConfig`)
+Configure HTTP, HTTPS, or SOCKS5 proxies with optional authentication credentials per `TabTemplate` or globally in `RunOptions`.
+
+### 🚨 CAPTCHA Detection Hooks (`on_captcha`)
+Detect CAPTCHA or Cloudflare challenge pages automatically during execution and invoke custom handler callbacks (`captcha_selector`, `on_captcha`).
+
+---
+
 ## 🚀 Version 1.4.0 - Network & API Interception Update
 
 StepWright 1.4.0 introduces the `intercept` step action for capturing background JSON/XHR API responses, resource blocking (`block_resources`), and custom HTTP header injection (`extra_http_headers`).

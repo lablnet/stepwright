@@ -27,11 +27,15 @@ from .step_types import (
     SelectorType,
     DataType,
     EngineType,
+    ProxyConfig,
     ValidationError,
     ValidationResult,
     StepMetric,
     ExecutionMetrics,
 )
+
+# Import stealth handlers
+from .handlers import apply_stealth_scripts, check_and_handle_captcha
 
 # Import helpers (for advanced usage)
 from .helpers import (
@@ -84,10 +88,14 @@ __all__ = [
     "SelectorType",
     "DataType",
     "EngineType",
+    "ProxyConfig",
     "ValidationError",
     "ValidationResult",
     "StepMetric",
     "ExecutionMetrics",
+    # Stealth
+    "apply_stealth_scripts",
+    "check_and_handle_captcha",
     # Helpers
     "replace_index_placeholders",
     "replace_data_placeholders",

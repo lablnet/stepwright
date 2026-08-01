@@ -49,6 +49,7 @@ export default withMermaid(defineConfig({
                         { text: 'Navigating IFrames', link: '/guide/advanced/iframes' },
                         { text: 'Emulation & Concurrency', link: '/guide/advanced/emulation-and-concurrency' },
                         { text: 'Network & API Interception', link: '/guide/advanced/network-interception' },
+                        { text: 'Stealth & Proxies', link: '/guide/advanced/stealth-and-proxies' },
                     ]
                 },
                 {

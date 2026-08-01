@@ -159,6 +159,17 @@ def _validate_template_format_single(
                     )
                 )
 
+        if tmpl.proxy:
+            proxy_server = tmpl.proxy.server if hasattr(tmpl.proxy, "server") else tmpl.proxy.get("server") if isinstance(tmpl.proxy, dict) else None
+            if not proxy_server or not isinstance(proxy_server, str) or not proxy_server.strip():
+                errors.append(
+                    ValidationError(
+                        path=f"{path}.proxy.server",
+                        message="Proxy configuration requires a non-empty 'server' URL",
+                        code="INVALID_PROXY_SERVER",
+                    )
+                )
+
     elif isinstance(tmpl, ParallelTemplate):
         if tmpl.max_concurrency is not None and tmpl.max_concurrency <= 0:
             errors.append(

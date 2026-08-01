@@ -62,6 +62,8 @@ from .handlers import (
     # Network handlers
     _handle_intercept,
     setup_resource_blocking,
+    # Stealth handlers
+    check_and_handle_captcha,
 )
 
 
@@ -403,6 +405,7 @@ async def execute_step_list(
     on_result=None,
     metrics: Optional[ExecutionMetrics] = None,
     debug_on_failure: bool = False,
+    template: Optional[TabTemplate] = None,
 ) -> None:
     """Execute a list of steps sequentially"""
     print(f"📝 Executing {len(steps)} step(s)")
@@ -416,6 +419,8 @@ async def execute_step_list(
                 metrics=metrics,
                 debug_on_failure=debug_on_failure,
             )
+            if template:
+                await check_and_handle_captcha(page, template, collected)
         except Exception as _:
             if step.terminateonerror:
                 raise
@@ -552,6 +557,8 @@ async def execute_tab(
             if not paginated:
                 break
 
+        await check_and_handle_captcha(page, template, collected)
+
         steps_for_page = (
             template.perPageSteps
             if (template.perPageSteps and len(template.perPageSteps) > 0)
@@ -564,6 +571,7 @@ async def execute_tab(
             on_result,
             metrics=metrics,
             debug_on_failure=debug_on_failure,
+            template=template,
         )
 
         # Always add result if steps were executed (even if collector is empty)

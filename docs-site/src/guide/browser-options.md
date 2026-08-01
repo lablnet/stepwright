@@ -71,3 +71,13 @@ results = await run_scraper(templates, RunOptions(
 ))
 ```
 
+## Stealth & Anti-Bot Evasion Mode
+Enable automated fingerprint evasion scripts (`stealth=True`) to mask `navigator.webdriver`, `window.chrome`, and WebGL flags:
+
+```python
+results = await run_scraper(templates, RunOptions(
+    stealth=True
+))
+```
+
+

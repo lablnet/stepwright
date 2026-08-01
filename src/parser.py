@@ -15,10 +15,12 @@ from .step_types import (
     RunOptions,
     BaseStep,
     ExecutionMetrics,
+    ProxyConfig,
 )
 from .executor import execute_tab
 from .scraper import get_browser, get_device_preset, _shutdown_playwright
 from .validator import validate_template_format, validate_template_data
+from .handlers import apply_stealth_scripts
 
 
 async def _build_context_args(options: RunOptions, tmpl: Optional[TabTemplate] = None) -> dict:
@@ -65,6 +67,20 @@ async def _build_context_args(options: RunOptions, tmpl: Optional[TabTemplate] =
     if extra_headers:
         context_args["extra_http_headers"] = extra_headers
 
+    proxy_val = (tmpl and tmpl.proxy) or options.proxy
+    if proxy_val:
+        if isinstance(proxy_val, ProxyConfig):
+            p_dict = {"server": proxy_val.server}
+            if proxy_val.username:
+                p_dict["username"] = proxy_val.username
+            if proxy_val.password:
+                p_dict["password"] = proxy_val.password
+            if proxy_val.bypass:
+                p_dict["bypass"] = proxy_val.bypass
+            context_args["proxy"] = p_dict
+        elif isinstance(proxy_val, dict):
+            context_args["proxy"] = proxy_val
+
     return context_args
 
 
@@ -93,6 +109,8 @@ async def run_scraper_with_metrics(
     # Base default context
     default_context_args = await _build_context_args(options)
     context = await browser.new_context(**default_context_args)
+    if options.stealth:
+        await apply_stealth_scripts(context)
 
     all_results: List[Dict[str, Any]] = []
     metrics = ExecutionMetrics()
@@ -121,6 +139,10 @@ async def run_scraper_with_metrics(
             if tab_context_args != default_context_args:
                 custom_context = await browser.new_context(**tab_context_args)
                 target_context = custom_context
+
+            is_stealth = tmpl.stealth or options.stealth
+            if is_stealth:
+                await apply_stealth_scripts(target_context)
 
             page = await target_context.new_page()
             try:

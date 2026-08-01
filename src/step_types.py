@@ -203,6 +203,16 @@ class PaginationConfig:
     paginateAllFirst: Optional[bool] = None
 
 
+@dataclass
+class ProxyConfig:
+    """Configuration for HTTP/SOCKS5 proxy server"""
+
+    server: str
+    username: Optional[str] = None
+    password: Optional[str] = None
+    bypass: Optional[str] = None
+
+
 EngineType = Literal["chromium", "firefox", "webkit"]
 
 
@@ -231,6 +241,12 @@ class TabTemplate:
     # Network & Interception Options
     block_resources: Optional[List[str]] = None
     extra_http_headers: Optional[Dict[str, str]] = None
+
+    # Stealth & Proxy Options
+    stealth: bool = False
+    proxy: Optional[Union[Dict[str, str], ProxyConfig]] = None
+    captcha_selector: Optional[str] = None
+    on_captcha: Optional[Callable] = None
 
 
 @dataclass
@@ -324,6 +340,13 @@ class RunOptions:
     # Network & Interception Options
     block_resources: Optional[List[str]] = None
     extra_http_headers: Optional[Dict[str, str]] = None
+
+    # Stealth & Proxy Options
+    stealth: bool = False
+    proxy: Optional[Union[Dict[str, str], ProxyConfig]] = None
+    captcha_selector: Optional[str] = None
+    on_captcha: Optional[Callable] = None
+
 
 
 

@@ -64,6 +64,12 @@ from .network_handlers import (
     setup_resource_blocking,
 )
 
+# Import stealth handlers
+from .stealth_handlers import (
+    apply_stealth_scripts,
+    check_and_handle_captcha,
+)
+
 __all__ = [
     # Data handlers
     "_handle_data_extraction",
@@ -104,4 +110,7 @@ __all__ = [
     # Network handlers
     "_handle_intercept",
     "setup_resource_blocking",
+    # Stealth handlers
+    "apply_stealth_scripts",
+    "check_and_handle_captcha",
 ]
