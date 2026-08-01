@@ -1,8 +1,6 @@
 # Pluggable Browser Driver Architecture
 
-StepWright 2.0.0 features a **Pluggable Browser Driver Architecture** matching the architecture of `stepwright-php`. 
-
-By decoupling step execution logic from Playwright directly, StepWright allows you to plug in custom browser backends (e.g., Selenium, Undetected Chromium, Pyppeteer, or lightweight HTTP/Requests engines) while maintaining `PlaywrightDriver` as the ultra-fast default.
+StepWright 2.0.0 features a **Pluggable Browser Driver Architecture**. By decoupling step execution logic from Playwright directly, StepWright allows you to plug in custom browser backends (e.g., Selenium, Undetected Chromium, Pyppeteer, or lightweight HTTP/Requests engines) while maintaining `PlaywrightDriver` as the ultra-fast default.
 
 ---
 

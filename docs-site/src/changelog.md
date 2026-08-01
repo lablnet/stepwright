@@ -7,7 +7,7 @@ StepWright 2.0.0 is a milestone major release that elevates StepWright into an e
 ---
 
 ### 🏎️ 1. Pluggable Browser Driver Architecture
-- **`BaseDriver` Contract**: Abstract Base Class defining standard browser driver contracts (`launch`, `goto`, `click`, `fill`, `type`, `evaluate`, `screenshot`, `text_content`, `inner_html`, etc.) matching `stepwright-php`.
+- **`BaseDriver` Contract**: Abstract Base Class defining standard browser driver contracts (`launch`, `goto`, `click`, `fill`, `type`, `evaluate`, `screenshot`, `text_content`, `inner_html`, etc.).
 - **`PlaywrightDriver` Default**: Concrete implementation wrapping Playwright with automatic event loop lifecycle management and thread-safe recycling.
 - **Custom Driver Registration**: Pass custom drivers via `RunOptions(driver=MyCustomDriver())` or `TabTemplate(driver=MyCustomDriver())`.
 
