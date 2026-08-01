@@ -176,6 +176,17 @@ def _validate_template_format_single(
                     )
                 )
 
+        if tmpl.driver:
+            from .drivers import BaseDriver
+            if not isinstance(tmpl.driver, str) and not isinstance(tmpl.driver, BaseDriver):
+                errors.append(
+                    ValidationError(
+                        path=f"{path}.driver",
+                        message="Driver must be a valid driver string (e.g. 'playwright') or an instance of BaseDriver",
+                        code="INVALID_DRIVER",
+                    )
+                )
+
     elif isinstance(tmpl, ParallelTemplate):
         if tmpl.max_concurrency is not None and tmpl.max_concurrency <= 0:
             errors.append(

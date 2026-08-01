@@ -131,6 +131,9 @@ async def run_scraper_with_metrics(
         results: List[Dict[str, Any]] = []
 
         if isinstance(tmpl, TabTemplate):
+            from .drivers import set_active_driver
+            active_drv = set_active_driver(tmpl.driver or options.driver)
+
             # Check if tab has custom context args or engine override
             tab_context_args = await _build_context_args(options, tmpl)
             target_context = current_context

@@ -51,6 +51,7 @@ export default withMermaid(defineConfig({
                         { text: 'Network & API Interception', link: '/guide/advanced/network-interception' },
                         { text: 'Stealth & Proxies', link: '/guide/advanced/stealth-and-proxies' },
                         { text: 'Page Controls & Actions', link: '/guide/advanced/page-controls-and-actions' },
+                        { text: 'Pluggable Drivers', link: '/guide/advanced/drivers' },
                     ]
                 },
                 {

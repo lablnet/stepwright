@@ -254,6 +254,9 @@ class TabTemplate:
     captcha_selector: Optional[str] = None
     on_captcha: Optional[Callable] = None
 
+    # Driver Architecture
+    driver: Optional[Union[str, Any]] = "playwright"
+
 
 @dataclass
 class ParallelTemplate:
@@ -352,6 +355,9 @@ class RunOptions:
     proxy: Optional[Union[Dict[str, str], ProxyConfig]] = None
     captcha_selector: Optional[str] = None
     on_captcha: Optional[Callable] = None
+
+    # Driver Architecture
+    driver: Union[str, Any] = "playwright"
 
 
 

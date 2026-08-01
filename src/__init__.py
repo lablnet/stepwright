@@ -52,6 +52,9 @@ from .executor import (
     execute_tab,
 )
 
+# Import Driver Architecture
+from .drivers import BaseDriver, PlaywrightDriver, get_driver
+
 # Import low-level scraper functions (for advanced usage)
 from .scraper import (
     get_browser,
@@ -76,6 +79,10 @@ __all__ = [
     # Validation
     "validate_template_format",
     "validate_template_data",
+    # Drivers
+    "BaseDriver",
+    "PlaywrightDriver",
+    "get_driver",
     # Types
     "BaseStep",
     "NextButtonConfig",
@@ -96,7 +103,7 @@ __all__ = [
     # Stealth
     "apply_stealth_scripts",
     "check_and_handle_captcha",
-    # Helpers
+    # Helpers",
     "replace_index_placeholders",
     "replace_data_placeholders",
     "locator_for",

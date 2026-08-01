@@ -102,7 +102,10 @@ async def navigate(page: Page, url: str, wait: int = 0) -> Page:
     """
     if not url:
         raise ValueError("Url is required")
-    await page.goto(url, wait_until="networkidle")
+    from .drivers import get_driver
+
+    drv = get_driver()
+    await drv.goto(page, url, wait_until="networkidle")
     if wait > 0:
         await _wait(wait)
     return page

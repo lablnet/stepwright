@@ -6,14 +6,21 @@ StepWright 2.0.0 is a milestone major release that elevates StepWright into an e
 
 ---
 
-### 🥷 1. Stealth Mode & Anti-Bot Evasion Features
+### 🏎️ 1. Pluggable Browser Driver Architecture
+- **`BaseDriver` Contract**: Abstract Base Class defining standard browser driver contracts (`launch`, `goto`, `click`, `fill`, `type`, `evaluate`, `screenshot`, `text_content`, `inner_html`, etc.) matching `stepwright-php`.
+- **`PlaywrightDriver` Default**: Concrete implementation wrapping Playwright with automatic event loop lifecycle management and thread-safe recycling.
+- **Custom Driver Registration**: Pass custom drivers via `RunOptions(driver=MyCustomDriver())` or `TabTemplate(driver=MyCustomDriver())`.
+
+---
+
+### 🥷 2. Stealth Mode & Anti-Bot Evasion Features
 - **Automated Stealth Fingerprint Evasion (`stealth=True`)**: Automatically injects init scripts (`add_init_script`) to mask `navigator.webdriver`, `navigator.languages`, `navigator.plugins`, `window.chrome`, `Permissions` API, and WebGL UNMASKED_VENDOR/RENDERER flags.
 - **Proxy Configuration (`proxy` & `ProxyConfig`)**: Pass HTTP, HTTPS, or SOCKS5 proxies with optional authentication credentials per `TabTemplate` or globally in `RunOptions`.
 - **CAPTCHA & Challenge Detection Hooks (`on_captcha`)**: Detect Cloudflare challenge frames or CAPTCHA elements (`captcha_selector`) during step execution and invoke custom resolution callback handlers (`on_captcha`).
 
 ---
 
-### ⌨️ 2. Additional Step Actions & Page Controls
+### ⌨️ 3. Additional Step Actions & Page Controls
 - **6 New Declarative Actions**: `press`, `type`, `dialog`, `mouseMove`, `waitForNavigation`, `setHeaders`.
 - **Keyboard Key Presses (`press`)**: Send keyboard key press events (`"Enter"`, `"Control+A"`, `"Backspace"`) to targeted DOM elements or page keyboard.
 - **Typing with Delay (`type` / `clickAndType`)**: Focus elements, clear inputs (`clearBeforeInput=True`), and type text with human-like key delays (`inputDelay`).
@@ -23,21 +30,21 @@ StepWright 2.0.0 is a milestone major release that elevates StepWright into an e
 
 ---
 
-### 📡 3. Network & API Request Interception
+### 📡 4. Network & API Request Interception
 - **`intercept` Step Action**: Capture background JSON/XHR/Fetch REST API responses matching URL patterns/globs directly into collector memory without DOM parsing.
 - **Resource Blocking (`block_resources`)**: Abort heavy asset types (`image`, `stylesheet`, `font`, `media`, `script`) per template or globally in `RunOptions` for ultra-fast text/API extraction.
 - **Custom HTTP Headers (`extra_http_headers`)**: Set custom request headers (e.g. Authorization tokens, Referer, Accept-Language) per template or globally.
 
 ---
 
-### 🌐 4. Multi-Engine, Device Emulation & Concurrency Controls
+### 🌐 5. Multi-Engine, Device Emulation & Concurrency Controls
 - **Multi-Engine Browser Selection**: Switch between `chromium`, `firefox`, and `webkit` browser engines dynamically via `RunOptions(engine="firefox")` or per `TabTemplate`.
 - **Mobile Device Emulation**: Emulate mobile devices using Playwright's device catalog presets (`device="iPhone 13"`, `device="Pixel 5"`). Supports custom Viewports, User-Agent strings, Locales, Timezones, Geolocation, and Permissions.
 - **Concurrency Rate Limiting**: Prevent server overload and IP blocks using `max_concurrency` semaphore limits and `rate_limit_delay_ms` launch delays across `ParallelTemplate` and `ParameterizedTemplate` workflows.
 
 ---
 
-### 🔍 5. Developer Experience, Static Validation & Metrics
+### 🔍 6. Developer Experience, Static Validation & Metrics
 - **Static Template Format Validation (`validate_template_format`)**: Statically checks step configuration, action types, selector types, and mandatory parameter fields without launching Playwright.
 - **Expected Data Flow Validation (`validate_template_data`)**: Verifies that the template data flow extracts all required collector output keys.
 - **Debug Diagnostic Trace (`debug_on_failure=True`)**: Prints detailed step diagnostics (step ID, action, selector, value, current URL, error trace) whenever a step fails.
