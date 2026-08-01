@@ -40,6 +40,12 @@ from .page_actions import (
     _handle_screenshot,
     _handle_wait_for_selector,
     _handle_evaluate,
+    _handle_press,
+    _handle_type,
+    _handle_dialog,
+    _handle_mouse_move,
+    _handle_wait_for_navigation,
+    _handle_set_headers,
 )
 
 # Import interaction handlers
@@ -97,6 +103,12 @@ __all__ = [
     "_handle_screenshot",
     "_handle_wait_for_selector",
     "_handle_evaluate",
+    "_handle_press",
+    "_handle_type",
+    "_handle_dialog",
+    "_handle_mouse_move",
+    "_handle_wait_for_navigation",
+    "_handle_set_headers",
     # Interaction handlers
     "_handle_hover",
     "_handle_select",

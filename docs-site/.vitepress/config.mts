@@ -50,6 +50,7 @@ export default withMermaid(defineConfig({
                         { text: 'Emulation & Concurrency', link: '/guide/advanced/emulation-and-concurrency' },
                         { text: 'Network & API Interception', link: '/guide/advanced/network-interception' },
                         { text: 'Stealth & Proxies', link: '/guide/advanced/stealth-and-proxies' },
+                        { text: 'Page Controls & Actions', link: '/guide/advanced/page-controls-and-actions' },
                     ]
                 },
                 {

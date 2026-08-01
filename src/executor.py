@@ -49,6 +49,12 @@ from .handlers import (
     _handle_screenshot,
     _handle_wait_for_selector,
     _handle_evaluate,
+    _handle_press,
+    _handle_type,
+    _handle_dialog,
+    _handle_mouse_move,
+    _handle_wait_for_navigation,
+    _handle_set_headers,
     # Interaction handlers
     _handle_hover,
     _handle_select,
@@ -371,6 +377,24 @@ async def _execute_step_internal(
 
         elif step.action == "intercept":
             await _handle_intercept(page, step, collector)
+
+        elif step.action == "press":
+            await _handle_press(page, step, collector, current_scope)
+
+        elif step.action == "type":
+            await _handle_type(page, step, collector, current_scope)
+
+        elif step.action == "dialog":
+            await _handle_dialog(page, step, collector)
+
+        elif step.action == "mouseMove":
+            await _handle_mouse_move(page, step, collector, current_scope)
+
+        elif step.action == "waitForNavigation":
+            await _handle_wait_for_navigation(page, step, collector)
+
+        elif step.action == "setHeaders":
+            await _handle_set_headers(page, step, collector)
 
         # trailing wait
         if step.wait and step.wait > 0:

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>StepWright Page Controls & Actions Demo</title>
+    <style>
+        body { font-family: sans-serif; padding: 2rem; background: #f4f6f8; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        input, button { padding: 0.8rem; font-size: 1rem; margin-top: 0.5rem; width: 100%; box-sizing: border-box; }
+        button { background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 1rem; }
+        button:hover { background: #2563eb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 id="page-title">Interactive Page Controls Demo</h1>
+        <p id="desc">Demonstrates press, type, dialog, mouseMove, waitForNavigation, and setHeaders actions.</p>
+        
+        <label for="search">Search Input:</label>
+        <input type="text" id="search" placeholder="Type text here...">
+
+        <button id="alert-btn" onclick="alert('Dialog accepted successfully by StepWright!')">Trigger Alert Dialog</button>
+    </div>
+</body>
+</html>

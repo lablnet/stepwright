@@ -52,6 +52,12 @@ VALID_ACTIONS = {
     "writeData",
     "custom",
     "intercept",
+    "press",
+    "type",
+    "dialog",
+    "mouseMove",
+    "waitForNavigation",
+    "setHeaders",
 }
 
 VALID_SELECTOR_TYPES = {"id", "class", "tag", "xpath"}
@@ -395,6 +401,30 @@ def _validate_step_format(
                 path=path,
                 message="Action 'intercept' requires a target URL pattern in 'object' or 'value'",
                 code="MISSING_INTERCEPT_PATTERN",
+            )
+        )
+    elif action == "press" and not step.value:
+        errors.append(
+            ValidationError(
+                path=f"{path}.value",
+                message="Action 'press' requires a key name in 'value' (e.g. 'Enter', 'Control+A')",
+                code="MISSING_PRESS_KEY",
+            )
+        )
+    elif action == "type" and (not step.object or step.value is None):
+        errors.append(
+            ValidationError(
+                path=path,
+                message="Action 'type' requires both 'object' (selector) and 'value' (text)",
+                code="MISSING_TYPE_PARAMS",
+            )
+        )
+    elif action == "mouseMove" and not (step.object or step.value):
+        errors.append(
+            ValidationError(
+                path=path,
+                message="Action 'mouseMove' requires either 'object' (selector) or 'value' (x,y coordinates)",
+                code="MISSING_MOUSE_MOVE_PARAMS",
             )
         )
 

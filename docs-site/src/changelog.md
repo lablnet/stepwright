@@ -1,5 +1,25 @@
 # What's New in StepWright
 
+## 🚀 Version 1.6.0 - Page Controls & Actions Update
+
+StepWright 1.6.0 introduces 6 new declarative step actions: `press`, `type`, `dialog`, `mouseMove`, `waitForNavigation`, and `setHeaders`.
+
+---
+
+### ⌨️ Key Presses & Typing (`press`, `type`)
+Send keyboard key press events (`"Enter"`, `"Control+A"`, `"Backspace"`) and type text with human-like key delays (`inputDelay`).
+
+### 💬 Dialog Auto-Handling (`dialog`)
+Automatically accept or dismiss browser alert, confirm, or prompt popups during step execution (`value="accept"` or `value="dismiss"`).
+
+### 🖱️ Mouse Movements (`mouseMove`)
+Move mouse cursor to DOM elements or (x, y) coordinates smoothly before interaction.
+
+### ⏳ Navigation Waits & Headers (`waitForNavigation`, `setHeaders`)
+Explicitly wait for page load states (`"networkidle"`, `"domcontentloaded"`) and dynamically inject extra HTTP request headers.
+
+---
+
 ## 🚀 Version 1.5.0 - Stealth & Anti-Bot Evasion Update
 
 StepWright 1.5.0 introduces automated stealth fingerprint evasion (`stealth=True`), proxy routing (`ProxyConfig`), and CAPTCHA / Cloudflare challenge detection hooks (`on_captcha`).

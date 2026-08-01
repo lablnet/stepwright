@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Any, Dict, Optional
 
@@ -353,3 +354,121 @@ async def _handle_evaluate(page: Page, step: BaseStep, collector: Dict[str, Any]
             collector[step.key] = None
         if step.terminateonerror:
             raise
+
+
+async def _handle_press(
+    page: Page,
+    step: BaseStep,
+    collector: Dict[str, Any],
+    scope_locator: Optional[Any] = None,
+) -> None:
+    """Handle press action - send keyboard key press event"""
+    key_name = replace_data_placeholders(step.value or "", collector) or step.value
+    if not key_name:
+        raise ValueError("press step requires 'value' specifying key name (e.g., 'Enter', 'Control+A')")
+
+    if step.object:
+        loc = locator_for(scope_locator or page, step.object_type, step.object)
+        await loc.press(key_name)
+        print(f"   ⌨️  Pressed key '{key_name}' on target element: {step.object}")
+    else:
+        await page.keyboard.press(key_name)
+        print(f"   ⌨️  Pressed page key '{key_name}'")
+
+
+async def _handle_type(
+    page: Page,
+    step: BaseStep,
+    collector: Dict[str, Any],
+    scope_locator: Optional[Any] = None,
+) -> None:
+    """Handle type / clickAndType action - type text into an input with character delay"""
+    if not step.object:
+        raise ValueError("type step requires 'object' selector")
+    if step.value is None:
+        raise ValueError("type step requires 'value' text string to type")
+
+    text = replace_data_placeholders(str(step.value), collector)
+    delay = step.inputDelay or 0
+
+    loc = locator_for(scope_locator or page, step.object_type, step.object)
+    if step.clearBeforeInput:
+        await loc.fill("")
+
+    await loc.type(text, delay=delay)
+    print(f"   ⌨️  Typed '{text}' into {step.object} with delay {delay}ms")
+
+
+async def _handle_dialog(
+    page: Page, step: BaseStep, collector: Dict[str, Any]
+) -> None:
+    """Handle dialog action - configure browser alert/confirm/prompt auto-handler"""
+    mode = (step.value or "accept").lower()
+    prompt_text = step.object or ""
+
+    print(f"   💬 Registered dialog handler mode: {mode}")
+
+    def dialog_handler(dialog):
+        print(f"   💬 Browser dialog triggered: {dialog.message}")
+        if mode == "dismiss":
+            asyncio.create_task(dialog.dismiss())
+        else:
+            asyncio.create_task(dialog.accept(prompt_text))
+
+    page.on("dialog", dialog_handler)
+
+
+async def _handle_mouse_move(
+    page: Page,
+    step: BaseStep,
+    collector: Dict[str, Any],
+    scope_locator: Optional[Any] = None,
+) -> None:
+    """Handle mouseMove action - move mouse cursor to element or (x, y) coordinates"""
+    if step.object:
+        loc = locator_for(scope_locator or page, step.object_type, step.object)
+        await loc.hover()
+        print(f"   🖱️  Moved mouse to element: {step.object}")
+    elif step.value:
+        coords_str = replace_data_placeholders(step.value, collector) or step.value
+        coords = [int(c.strip()) for c in coords_str.replace("x", ",").replace(" ", ",").split(",")]
+        if len(coords) < 2:
+            raise ValueError(f"mouseMove step requires 'x,y' coordinates in 'value', got '{step.value}'")
+        await page.mouse.move(coords[0], coords[1])
+        print(f"   🖱️  Moved mouse to coordinates: ({coords[0]}, {coords[1]})")
+    else:
+        raise ValueError("mouseMove step requires either 'object' selector or 'value' coordinates ('x,y')")
+
+
+async def _handle_wait_for_navigation(
+    page: Page, step: BaseStep, collector: Dict[str, Any]
+) -> None:
+    """Handle waitForNavigation action - wait for page load state"""
+    state = (step.value or "networkidle").lower()
+    timeout = step.wait or 30000
+    print(f"   ⏳ Waiting for navigation load state: {state}")
+    if state in ("networkidle", "domcontentloaded", "load"):
+        await page.wait_for_load_state(state, timeout=timeout)
+    else:
+        await page.wait_for_url(step.value, timeout=timeout)
+
+
+async def _handle_set_headers(
+    page: Page, step: BaseStep, collector: Dict[str, Any]
+) -> None:
+    """Handle setHeaders action - set extra HTTP request headers dynamically"""
+    if not step.value and not step.key:
+        raise ValueError("setHeaders step requires 'object' (header name) & 'value' (header value)")
+
+    if step.object and step.value:
+        h_name = replace_data_placeholders(step.object, collector) or step.object
+        h_val = replace_data_placeholders(step.value, collector) or step.value
+        headers = {h_name: h_val}
+    elif step.key and step.key in collector and isinstance(collector[step.key], dict):
+        headers = collector[step.key]
+    else:
+        raise ValueError("setHeaders step requires 'object' & 'value' or a valid dict in collector[key]")
+
+    await page.set_extra_http_headers(headers)
+    print(f"   🔑 Dynamically set extra HTTP headers: {headers}")
+

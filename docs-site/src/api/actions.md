@@ -41,6 +41,12 @@ fallbackSelectors: list = [] # List of dicts: [{"object_type": "class", "object"
 | `getUrl` | Current page URL | `key="url"` |
 | `getCookies` | Request cookies | `key="cookies"` |
 | `intercept` | Capture XHR/Fetch response | `object="**/api/*"`, `key="my_key"` |
+| `press` | Keyboard key press event | `value="Enter"` |
+| `type` | Type text with delay | `object`, `value="text"` |
+| `dialog` | Auto-handle JS dialogs | `value="accept"` |
+| `mouseMove` | Move mouse cursor | `object` OR `value="x,y"` |
+| `waitForNavigation` | Wait for load state | `value="networkidle"` |
+| `setHeaders` | Set extra HTTP headers | `object="Name"`, `value="Val"` |
 
 ## Error Resilience
 

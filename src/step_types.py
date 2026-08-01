@@ -58,6 +58,12 @@ class BaseStep:
         "writeData",
         "custom",
         "intercept",
+        "press",
+        "type",
+        "dialog",
+        "mouseMove",
+        "waitForNavigation",
+        "setHeaders",
     ] = "navigate"
     value: Optional[str] = None
     key: Optional[str] = None
