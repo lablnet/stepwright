@@ -35,6 +35,7 @@ export default withMermaid(defineConfig({
                         { text: 'Selectors & Data', link: '/guide/selectors-and-data' },
                         { text: 'Error Handling & Waits', link: '/guide/error-handling-and-waits' },
                         { text: 'Browser Options', link: '/guide/browser-options' },
+                        { text: 'Validation & Debugging', link: '/guide/validation-and-debugging' },
                     ]
                 },
                 {

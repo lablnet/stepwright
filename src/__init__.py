@@ -9,7 +9,10 @@ __author__ = "Muhammad Umer Farooq"
 __email__ = "umer@lablnet.com"
 
 # Import main API
-from .parser import run_scraper, run_scraper_with_callback
+from .parser import run_scraper, run_scraper_with_callback, run_scraper_with_metrics
+
+# Import validator functions
+from .validator import validate_template_format, validate_template_data
 
 # Import types
 from .step_types import (
@@ -23,6 +26,10 @@ from .step_types import (
     RunOptions,
     SelectorType,
     DataType,
+    ValidationError,
+    ValidationResult,
+    StepMetric,
+    ExecutionMetrics,
 )
 
 # Import helpers (for advanced usage)
@@ -59,6 +66,10 @@ __all__ = [
     # Main API
     "run_scraper",
     "run_scraper_with_callback",
+    "run_scraper_with_metrics",
+    # Validation
+    "validate_template_format",
+    "validate_template_data",
     # Types
     "BaseStep",
     "NextButtonConfig",
@@ -70,6 +81,10 @@ __all__ = [
     "RunOptions",
     "SelectorType",
     "DataType",
+    "ValidationError",
+    "ValidationResult",
+    "StepMetric",
+    "ExecutionMetrics",
     # Helpers
     "replace_index_placeholders",
     "replace_data_placeholders",

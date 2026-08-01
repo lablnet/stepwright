@@ -230,8 +230,54 @@ class ParameterizedTemplate:
 
 
 @dataclass
+class ValidationError:
+    """Represents a single validation error in a template or step"""
+
+    path: str
+    message: str
+    code: str = "INVALID_STEP"
+
+
+@dataclass
+class ValidationResult:
+    """Result of template format or data validation"""
+
+    is_valid: bool
+    errors: List[ValidationError]
+    warnings: List[str]
+
+
+@dataclass
+class StepMetric:
+    """Execution timing and status metrics for a single step"""
+
+    step_id: str
+    action: str
+    duration_ms: float
+    success: bool
+    error: Optional[str] = None
+
+
+@dataclass
+class ExecutionMetrics:
+    """Aggregated execution metrics for a scraping session"""
+
+    total_duration_ms: float = 0.0
+    total_steps_executed: int = 0
+    failed_steps_count: int = 0
+    step_metrics: List[StepMetric] = None
+
+    def __post_init__(self):
+        if self.step_metrics is None:
+            self.step_metrics = []
+
+
+@dataclass
 class RunOptions:
     """Options for running the scraper"""
 
     browser: Optional[dict] = None  # passed to chromium.launch
     onResult: Optional[Any] = None  # Callable[[Dict[str, Any], int], Any]
+    debug_on_failure: bool = False  # Pause or print detailed diagnostics on failure
+    collect_metrics: bool = False  # Track step execution metrics
+

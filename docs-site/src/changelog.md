@@ -1,5 +1,37 @@
 # What's New in StepWright
 
+## 🚀 Version 1.2.0 - Developer Experience & Validation Update
+
+StepWright 1.2.0 introduces static template format validation, expected data flow validation, enhanced step debugging options, and runtime execution metrics tracking.
+
+---
+
+### 🔍 Static Template & Data Validation
+Exposed public validation APIs to verify scraping templates before launching browser instances.
+
+- **`validate_template_format(templates)`**: Statically checks step configuration, action types, selector types, and mandatory parameter fields without starting Playwright.
+- **`validate_template_data(templates, expected_keys)`**: Verifies that the template data flow extracts all required collector output keys.
+
+```python
+from stepwright import validate_template_format, validate_template_data
+
+# Validate format
+format_res = validate_template_format(template)
+if not format_res.is_valid:
+    print("Format errors:", format_res.errors)
+
+# Validate output keys
+data_res = validate_template_data(template, ["title", "price"])
+```
+
+---
+
+### ⏱️ Execution Metrics & Debugging Options
+- **`debug_on_failure`**: Setting `RunOptions(debug_on_failure=True)` prints detailed step diagnostics (step ID, action, selector, value, current URL, error trace) whenever a step fails.
+- **`run_scraper_with_metrics`**: Returns an `ExecutionMetrics` object detailing total execution duration, step execution counts, failure counts, and per-step timing metrics (`StepMetric`).
+
+---
+
 ## 🚀 Version 1.1.0 - The Concurrency & Data Flow Update
 
 StepWright 1.1.0 is a massive update that evolves the library from a sequential task runner into a high-performance concurrent scraping engine. This release introduces parallel execution, parameterized templates, and advanced data flow capabilities, allowing you to treat web scraping like a standard data engineering pipeline.

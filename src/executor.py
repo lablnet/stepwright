@@ -8,7 +8,8 @@ from typing import Any, Callable, Dict, List, Optional
 
 from playwright.async_api import Page
 
-from .step_types import BaseStep, PaginationConfig, TabTemplate
+import time
+from .step_types import BaseStep, PaginationConfig, TabTemplate, ExecutionMetrics, StepMetric
 from .helpers import (
     replace_data_placeholders,
     maybe_await,
@@ -67,9 +68,12 @@ async def execute_step(
     collector: Dict[str, Any],
     on_result: Optional[Callable[[Dict[str, Any], int], Any]] = None,
     scope_locator: Optional[Any] = None,  # Locator to scope searches within
+    metrics: Optional[ExecutionMetrics] = None,
+    debug_on_failure: bool = False,
 ) -> None:
     """Execute a single scraping step"""
     print(f"➡️  Step `{step.id}` ({step.action})")
+    start_time = time.perf_counter()
 
     # Check conditional execution
     if step.skipIf:
@@ -94,6 +98,17 @@ async def execute_step(
             await _execute_step_internal(
                 page, step, collector, on_result, scope_locator
             )
+            duration_ms = (time.perf_counter() - start_time) * 1000.0
+            if metrics is not None:
+                metrics.total_steps_executed += 1
+                metrics.step_metrics.append(
+                    StepMetric(
+                        step_id=step.id,
+                        action=step.action,
+                        duration_ms=duration_ms,
+                        success=True,
+                    )
+                )
             return  # Success, exit retry loop
         except Exception as e:
             if attempt < retry_count:
@@ -102,6 +117,30 @@ async def execute_step(
                 )
                 await page.wait_for_timeout(retry_delay)
             else:
+                duration_ms = (time.perf_counter() - start_time) * 1000.0
+                if metrics is not None:
+                    metrics.total_steps_executed += 1
+                    metrics.failed_steps_count += 1
+                    metrics.step_metrics.append(
+                        StepMetric(
+                            step_id=step.id,
+                            action=step.action,
+                            duration_ms=duration_ms,
+                            success=False,
+                            error=str(e),
+                        )
+                    )
+                if debug_on_failure:
+                    print(
+                        f"\n================ STEP DEBUG ON FAILURE ================\n"
+                        f"Step ID: {step.id}\n"
+                        f"Action: {step.action}\n"
+                        f"Selector: {step.object} ({step.object_type})\n"
+                        f"Value: {step.value}\n"
+                        f"Current URL: {page.url}\n"
+                        f"Error: {e}\n"
+                        f"=======================================================\n"
+                    )
                 raise  # Re-raise on final attempt
 
 
@@ -352,13 +391,25 @@ async def _handle_scroll(page: Page, step: BaseStep) -> None:
 
 
 async def execute_step_list(
-    page: Page, steps: List[BaseStep], collected: Dict[str, Any], on_result=None
+    page: Page,
+    steps: List[BaseStep],
+    collected: Dict[str, Any],
+    on_result=None,
+    metrics: Optional[ExecutionMetrics] = None,
+    debug_on_failure: bool = False,
 ) -> None:
     """Execute a list of steps sequentially"""
     print(f"📝 Executing {len(steps)} step(s)")
     for step in steps:
         try:
-            await execute_step(page, step, collected, on_result)
+            await execute_step(
+                page,
+                step,
+                collected,
+                on_result,
+                metrics=metrics,
+                debug_on_failure=debug_on_failure,
+            )
         except Exception as _:
             if step.terminateonerror:
                 raise
@@ -369,6 +420,8 @@ async def execute_tab(
     page: Page,
     template: TabTemplate,
     on_result: Optional[Callable[[Dict[str, Any], int], Any]] = None,
+    metrics: Optional[ExecutionMetrics] = None,
+    debug_on_failure: bool = False,
 ) -> List[Dict[str, Any]]:
     """Execute a complete tab template with pagination"""
     results: List[Dict[str, Any]] = []
@@ -377,7 +430,14 @@ async def execute_tab(
     # 1) initSteps
     if template.initSteps:
         print("--- Running initSteps ---")
-        await execute_step_list(page, template.initSteps, {}, on_result)
+        await execute_step_list(
+            page,
+            template.initSteps,
+            {},
+            on_result,
+            metrics=metrics,
+            debug_on_failure=debug_on_failure,
+        )
 
     pagination = template.pagination
 
@@ -434,7 +494,14 @@ async def execute_tab(
             if (template.perPageSteps and len(template.perPageSteps) > 0)
             else (template.steps or [])
         )
-        await execute_step_list(page, steps_for_page, collected, on_result)
+        await execute_step_list(
+            page,
+            steps_for_page,
+            collected,
+            on_result,
+            metrics=metrics,
+            debug_on_failure=debug_on_failure,
+        )
         # Always add result if steps were executed (even if collector is empty)
         if steps_for_page and len(steps_for_page) > 0:
             item_keys = [k for k in collected.keys() if k.startswith("item_")]
@@ -477,7 +544,14 @@ async def execute_tab(
             if (template.perPageSteps and len(template.perPageSteps) > 0)
             else (template.steps or [])
         )
-        await execute_step_list(page, steps_for_page, collected, on_result)
+        await execute_step_list(
+            page,
+            steps_for_page,
+            collected,
+            on_result,
+            metrics=metrics,
+            debug_on_failure=debug_on_failure,
+        )
 
         # Always add result if steps were executed (even if collector is empty)
         # This ensures actions-only steps (like clicks) still produce results

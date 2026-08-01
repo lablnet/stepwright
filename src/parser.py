@@ -4,18 +4,21 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import asyncio
 
+import time
 from .step_types import (
     TabTemplate,
     ParallelTemplate,
     ParameterizedTemplate,
     RunOptions,
     BaseStep,
+    ExecutionMetrics,
 )
 from .executor import execute_tab
 from .scraper import get_browser, _shutdown_playwright
+from .validator import validate_template_format, validate_template_data
 
 
 async def run_scraper(
@@ -25,6 +28,17 @@ async def run_scraper(
     """
     Execute a scraping template and return the gathered data.
     """
+    results, _ = await run_scraper_with_metrics(templates, options)
+    return results
+
+
+async def run_scraper_with_metrics(
+    templates: List[Union[TabTemplate, ParallelTemplate, ParameterizedTemplate]],
+    options: Optional[RunOptions] = None,
+) -> Tuple[List[Dict[str, Any]], ExecutionMetrics]:
+    """
+    Execute a scraping template and return both the gathered data and ExecutionMetrics.
+    """
     options = options or RunOptions()
     browser = await get_browser((options.browser or {"headless": True}))
 
@@ -32,6 +46,8 @@ async def run_scraper(
     context = await browser.new_context()
 
     all_results: List[Dict[str, Any]] = []
+    metrics = ExecutionMetrics()
+    start_time = time.perf_counter()
 
     async def process_template(
         tmpl: Union[TabTemplate, ParallelTemplate, ParameterizedTemplate],
@@ -42,28 +58,26 @@ async def run_scraper(
         if isinstance(tmpl, TabTemplate):
             page = await current_context.new_page()
             try:
-                # Handle images/media blocking if configured in RunOptions (custom extension)
-                # For now just execute
-                tab_results = await execute_tab(page, tmpl, options.onResult)
+                tab_results = await execute_tab(
+                    page,
+                    tmpl,
+                    options.onResult,
+                    metrics=metrics if options.collect_metrics else None,
+                    debug_on_failure=options.debug_on_failure,
+                )
                 results.extend(tab_results)
             finally:
                 await page.close()
 
         elif isinstance(tmpl, ParallelTemplate):
-            # Run nested templates concurrently
             tasks = [process_template(t, current_context) for t in tmpl.templates]
             parallel_results = await asyncio.gather(*tasks)
             for res_list in parallel_results:
                 results.extend(res_list)
 
         elif isinstance(tmpl, ParameterizedTemplate):
-            # Generate N templates from one base
             parameterized_tasks = []
             for val in tmpl.values:
-                # Deep copy or recreate template with param injected
-                # Since we don't have deepcopy helper here, we rely on string replacement in steps
-                # during execution if we pass the value through context.
-                # But a cleaner way is to clone the template object logic.
                 from copy import deepcopy
 
                 cloned_tmpl = deepcopy(tmpl.template)
@@ -73,7 +87,6 @@ async def run_scraper(
                 else:
                     cloned_tmpl.tab = f"{cloned_tmpl.tab}_{val}"
 
-                # Update steps with parameter
                 def inject_param(steps: List[BaseStep], key: str, value: Any):
                     placeholder = f"{{{{{key}}}}}"
                     for s in steps:
@@ -107,11 +120,12 @@ async def run_scraper(
         for res_list in final_results:
             all_results.extend(res_list)
     finally:
+        metrics.total_duration_ms = (time.perf_counter() - start_time) * 1000.0
         await context.close()
         await browser.close()
         await _shutdown_playwright()
 
-    return all_results
+    return all_results, metrics
 
 
 async def run_scraper_with_callback(
@@ -125,3 +139,4 @@ async def run_scraper_with_callback(
     options = options or RunOptions()
     options.onResult = on_result
     await run_scraper(templates, options)
+

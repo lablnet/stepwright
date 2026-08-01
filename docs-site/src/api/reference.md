@@ -21,13 +21,69 @@ async def run_scraper_with_callback(
 ) -> None: ...
 ```
 
+To collect execution metrics and timing stats alongside the scraped data:
+```python
+async def run_scraper_with_metrics(
+    templates: List[Union[TabTemplate, ParallelTemplate, ParameterizedTemplate]],
+    options: RunOptions = RunOptions()
+) -> Tuple[List[Dict[str, Any]], ExecutionMetrics]: ...
+```
+
+## Validation APIs
+
+Validate template syntax, step configuration, and expected data output structure without starting a browser instance:
+
+```python
+def validate_template_format(
+    templates: Union[TabTemplate, ParallelTemplate, ParameterizedTemplate, List[...]]
+) -> ValidationResult: ...
+
+def validate_template_data(
+    templates: Union[TabTemplate, ParallelTemplate, ParameterizedTemplate, List[...]],
+    expected_keys: List[str]
+) -> ValidationResult: ...
+```
+
 ## `RunOptions`
-Global configuration applied to the Playwright browser.
+Global configuration applied to the Playwright browser and scraping session.
 ```python
 @dataclass
 class RunOptions:
     browser: Dict[str, Any] = field(default_factory=lambda: {"headless": True})
-    output_dir: str = "downloads"
+    onResult: Optional[Callable[[Dict[str, Any], int], Any]] = None
+    debug_on_failure: bool = False  # Print detailed diagnostic log on step error
+    collect_metrics: bool = False   # Track execution timing & step metrics
+```
+
+## Validation & Metrics Data Classes
+
+```python
+@dataclass
+class ValidationError:
+    path: str
+    message: str
+    code: str = "INVALID_STEP"
+
+@dataclass
+class ValidationResult:
+    is_valid: bool
+    errors: List[ValidationError]
+    warnings: List[str]
+
+@dataclass
+class StepMetric:
+    step_id: str
+    action: str
+    duration_ms: float
+    success: bool
+    error: Optional[str] = None
+
+@dataclass
+class ExecutionMetrics:
+    total_duration_ms: float = 0.0
+    total_steps_executed: int = 0
+    failed_steps_count: int = 0
+    step_metrics: List[StepMetric] = field(default_factory=list)
 ```
 
 ## `TabTemplate`
