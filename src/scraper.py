@@ -19,6 +19,28 @@ SelectorType = Literal["id", "class", "tag", "xpath"]
 
 # Internal singleton Playwright manager so get_browser() matches TS ergonomics
 _pw: Optional[Playwright] = None
+_pw_loop: Optional[asyncio.AbstractEventLoop] = None
+
+
+async def _get_pw() -> Playwright:
+    """
+    Get the singleton Playwright instance.
+
+    :return: Playwright instance
+    """
+    global _pw, _pw_loop
+    current_loop = asyncio.get_running_loop()
+    if _pw is not None and (_pw_loop != current_loop or _pw_loop.is_closed()):
+        try:
+            await _pw.stop()
+        except Exception:
+            pass
+        _pw = None
+
+    if _pw is None:
+        _pw = await async_playwright().start()
+        _pw_loop = current_loop
+    return _pw
 
 
 async def get_browser(
@@ -31,18 +53,16 @@ async def get_browser(
     :param engine: 'chromium' | 'firefox' | 'webkit'
     :return: Browser
     """
-    global _pw
-    if _pw is None:
-        _pw = await async_playwright().start()
+    pw = await _get_pw()
     launch_params = params or {}
 
     engine_name = (engine or "chromium").lower()
     if engine_name == "firefox":
-        browser = await _pw.firefox.launch(**launch_params)
+        browser = await pw.firefox.launch(**launch_params)
     elif engine_name == "webkit":
-        browser = await _pw.webkit.launch(**launch_params)
+        browser = await pw.webkit.launch(**launch_params)
     else:
-        browser = await _pw.chromium.launch(**launch_params)
+        browser = await pw.chromium.launch(**launch_params)
     return browser
 
 
@@ -50,13 +70,11 @@ async def get_device_preset(device_name: str) -> dict:
     """
     Get Playwright device emulation preset by name (e.g. 'iPhone 13', 'Pixel 5').
     """
-    global _pw
-    if _pw is None:
-        _pw = await async_playwright().start()
+    pw = await _get_pw()
 
-    if device_name in _pw.devices:
-        return dict(_pw.devices[device_name])
-    raise ValueError(f"Unknown device preset '{device_name}'. Available: {list(_pw.devices.keys())[:10]}...")
+    if device_name in pw.devices:
+        return dict(pw.devices[device_name])
+    raise ValueError(f"Unknown device preset '{device_name}'. Available: {list(pw.devices.keys())[:10]}...")
 
 
 async def _shutdown_playwright() -> None:

@@ -15,12 +15,10 @@ from stepwright import (
 )
 
 
-def test_device_preset_lookup():
+@pytest.mark.asyncio
+async def test_device_preset_lookup():
     """Test retrieving Playwright device preset"""
-    pytest.importorskip("playwright")
-    import asyncio
-
-    preset = asyncio.run(get_device_preset("iPhone 13"))
+    preset = await get_device_preset("iPhone 13")
     assert "user_agent" in preset or "viewport" in preset
 
 

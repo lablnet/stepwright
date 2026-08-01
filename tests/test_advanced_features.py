@@ -159,6 +159,4 @@ async def test_advanced_features():
 
 
 if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(test_advanced_features())
+    pass
