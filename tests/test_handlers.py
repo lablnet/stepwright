@@ -4,7 +4,8 @@
 import os
 import json
 import pytest
-from unittest.mock import AsyncMock
+import unittest.mock
+from unittest.mock import AsyncMock, MagicMock
 
 from stepwright.step_types import BaseStep
 from stepwright.handlers.file_handlers import _handle_event_download, _handle_save_pdf
@@ -175,4 +176,160 @@ async def test_page_storage_and_viewport_handlers():
     mock_page.viewport_size = {"width": 1280, "height": 720}
     await _handle_get_viewport_size(mock_page, BaseStep(id="gv1", action="getViewportSize", key="vp"), collector)
     assert collector["vp"] == {"width": 1280, "height": 720}
+
+
+@pytest.mark.asyncio
+async def test_network_handlers_comprehensive():
+    from stepwright.handlers.network_handlers import _handle_intercept, setup_resource_blocking
+
+    mock_page = AsyncMock()
+    collector = {}
+
+    # Intercept response listener setup and execution
+    step_ic = BaseStep(id="ic1", action="intercept", object="api/*", data_type="json", key="api_res")
+    await _handle_intercept(mock_page, step_ic, collector)
+
+    # Trigger response listener callback directly
+    assert mock_page.on.called
+    response_callback = mock_page.on.call_args[0][1]
+
+    mock_resp = AsyncMock()
+    mock_resp.url = "https://example.com/api/users"
+    mock_resp.request.method = "GET"
+    mock_resp.json.return_value = {"users": ["alice", "bob"]}
+
+    import asyncio
+    task = response_callback(mock_resp)
+    if asyncio.iscoroutine(task) or hasattr(task, "__await__"):
+        await task
+
+    # Setup resource blocking
+    await setup_resource_blocking(mock_page, None)  # Noop
+    await setup_resource_blocking(mock_page, ["image", "stylesheet"])
+    mock_page.route.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_data_flow_comprehensive(tmp_path):
+    from stepwright.handlers.data_flow_handlers import _handle_read_data, _handle_write_data, _handle_custom_callback
+
+    mock_page = AsyncMock()
+    collector = {}
+
+    # Read CSV file
+    csv_path = str(tmp_path / "read.csv")
+    with open(csv_path, "w") as f:
+        f.write("name,age\nalice,30\nbob,25\n")
+    step_csv_read = BaseStep(id="r_csv", action="readData", value=csv_path, data_type="csv", key="csv_data")
+    await _handle_read_data(mock_page, step_csv_read, collector)
+    assert len(collector["csv_data"]) == 2
+
+    # Read Text lines
+    txt_path = str(tmp_path / "read.txt")
+    with open(txt_path, "w") as f:
+        f.write("line1\nline2\n")
+    step_txt_read = BaseStep(id="r_txt", action="readData", value=txt_path, data_type="text", key="txt_data")
+    await _handle_read_data(mock_page, step_txt_read, collector)
+    assert collector["txt_data"] == ["line1", "line2"]
+
+    # Write CSV file
+    out_csv = str(tmp_path / "out.csv")
+    collector["out_items"] = [{"title": "Item 1", "price": "10"}]
+    step_csv_write = BaseStep(id="w_csv", action="writeData", value=out_csv, data_type="csv", key="out_items")
+    await _handle_write_data(mock_page, step_csv_write, collector)
+    assert os.path.exists(out_csv)
+
+    # Custom action callback missing callback raises ValueError
+    step_no_cb = BaseStep(id="c_err", action="custom")
+    with pytest.raises(ValueError):
+        await _handle_custom_callback(mock_page, step_no_cb, collector)
+
+    # Custom action callback success
+    async def my_cb(pg, coll, stp): return "cb_result"
+    step_cb = BaseStep(id="c_ok", action="custom", callback=my_cb, key="cb_key")
+    await _handle_custom_callback(mock_page, step_cb, collector)
+    assert collector["cb_key"] == "cb_result"
+
+
+@pytest.mark.asyncio
+async def test_file_handlers_comprehensive(tmp_path):
+    from stepwright.handlers.file_handlers import (
+        _handle_event_download,
+        _handle_save_pdf,
+        _handle_download_pdf,
+    )
+
+    mock_page = AsyncMock()
+    mock_page.url = "https://example.com/viewer.html?file=doc.pdf"
+    collector = {}
+
+    # Event download - missing value error
+    with pytest.raises(ValueError):
+        await _handle_event_download(mock_page, BaseStep(id="d1", action="eventBaseDownload"), collector)
+
+    # Event download - element not visible
+    mock_target = AsyncMock()
+    mock_target.is_visible = AsyncMock(return_value=False)
+    mock_page.locator = MagicMock(return_value=mock_target)
+    await _handle_event_download(mock_page, BaseStep(id="d2", action="eventBaseDownload", object="btn", value=str(tmp_path / "f.txt"), key="file"), collector)
+    assert collector["file"] is None
+
+    # Save PDF - missing value error
+    with pytest.raises(ValueError):
+        await _handle_save_pdf(mock_page, BaseStep(id="p1", action="savePDF"), collector)
+
+    # Save PDF - URL with query param .pdf
+    mock_page.evaluate.return_value = None
+    pdf_path = str(tmp_path / "out.pdf")
+    step_pdf = BaseStep(id="p2", action="savePDF", value=pdf_path, key="pdf_key")
+
+    # Mock async_playwright context response
+    mock_resp = AsyncMock()
+    mock_resp.ok = True
+    mock_resp.body.return_value = b"%PDF-1.4 mock pdf data"
+
+    mock_req_ctx = AsyncMock()
+    mock_req_ctx.get.return_value = mock_resp
+
+    mock_pw = AsyncMock()
+    mock_pw.request.new_context.return_value = mock_req_ctx
+
+    with unittest.mock.patch("stepwright.handlers.file_handlers.async_playwright") as mock_apw:
+        mock_cm = AsyncMock()
+        mock_cm.__aenter__.return_value = mock_pw
+        mock_apw.return_value = mock_cm
+
+        await _handle_save_pdf(mock_page, step_pdf, collector)
+        assert os.path.exists(pdf_path)
+        assert collector["pdf_key"] == pdf_path
+
+    # Download PDF - missing object / value errors
+    with pytest.raises(ValueError):
+        await _handle_download_pdf(mock_page, BaseStep(id="dp1", action="downloadPDF", value="v"), collector)
+    with pytest.raises(ValueError):
+        await _handle_download_pdf(mock_page, BaseStep(id="dp2", action="downloadPDF", object="o"), collector)
+
+    # Download PDF - count 0
+    mock_link = AsyncMock()
+    mock_link.count.return_value = 0
+    mock_page.locator.return_value = mock_link
+    await _handle_download_pdf(mock_page, BaseStep(id="dp3", action="downloadPDF", object="link", value="val"), collector)
+    assert collector["file"] is None
+
+    # Download PDF - direct href success
+    mock_link.count.return_value = 1
+    mock_link.get_attribute.return_value = "https://example.com/doc.pdf"
+    dl_pdf_path = str(tmp_path / "downloaded.pdf")
+    step_dl_pdf = BaseStep(id="dp4", action="downloadPDF", object="link", value=dl_pdf_path, key="dl_key")
+
+    with unittest.mock.patch("stepwright.handlers.file_handlers.async_playwright") as mock_apw:
+        mock_cm = AsyncMock()
+        mock_cm.__aenter__.return_value = mock_pw
+        mock_apw.return_value = mock_cm
+
+        await _handle_download_pdf(mock_page, step_dl_pdf, collector)
+        assert os.path.exists(dl_pdf_path)
+        assert collector["dl_key"] == dl_pdf_path
+
+
 

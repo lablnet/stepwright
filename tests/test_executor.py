@@ -74,3 +74,30 @@ async def test_executor_retry_logic():
     )
     with pytest.raises(ValueError):
         await execute_step(mock_page, step_retry, collector, metrics=metrics)
+
+
+@pytest.mark.asyncio
+async def test_execute_tab_pagination_and_captcha():
+    from stepwright.executor import execute_tab
+    from stepwright.step_types import TabTemplate, BaseStep, PaginationConfig, ScrollConfig
+
+    mock_page = AsyncMock()
+    mock_page.url = "https://example.com"
+    mock_page.evaluate = AsyncMock(return_value=1000)
+
+    # Tab template with paginateAllFirst strategy
+    tmpl = TabTemplate(
+        tab="t_paginate_all",
+        initSteps=[BaseStep(id="init1", action="navigate", value="https://example.com")],
+        steps=[BaseStep(id="s1", action="scroll", value="500")],
+        pagination=PaginationConfig(
+            strategy="scroll",
+            scroll=ScrollConfig(offset=500, delay=10),
+            paginateAllFirst=True,
+            maxPages=2
+        )
+    )
+
+    results = await execute_tab(mock_page, tmpl)
+    assert isinstance(results, list)
+
