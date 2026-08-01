@@ -57,10 +57,33 @@ class XMLFileAdapter(BaseStorageAdapter):
         # convert to tree
         tree = ET.ElementTree(root)
         # pretty print
-        ET.indent(tree, space="  ", level=0)
+        if hasattr(ET, "indent"):
+            ET.indent(tree, space="  ", level=0)
+        else:
+            self._indent(root)
         # write to file
         tree.write(target, encoding="utf-8", xml_declaration=True)
         return True
+
+    def _indent(self, elem: ET.Element, level: int = 0) -> None:
+        """
+        Helper method for pretty printing XML
+        Python3.8+ has ET.indent, but for compatibility with older versions
+        @since 2.0.0
+        """
+        i = "\n" + level * "  "
+        if len(elem):
+            if not elem.text or not elem.text.strip():
+                elem.text = i + "  "
+            if not elem.tail or not elem.tail.strip():
+                elem.tail = i
+            for subelem in elem:
+                self._indent(subelem, level + 1)
+            if not elem.tail or not elem.tail.strip():
+                elem.tail = i
+        else:
+            if level and (not elem.tail or not elem.tail.strip()):
+                elem.tail = i
 
     def close(self) -> None:
         pass
