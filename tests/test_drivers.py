@@ -206,3 +206,97 @@ async def test_base_driver_abstract_methods():
     await driver.scroll_into_view(None)
     await driver.frame_locator(None, "iframe")
 
+
+@pytest.mark.asyncio
+async def test_playwright_driver_mock_calls():
+    from stepwright.drivers.playwright_driver import PlaywrightDriver
+    from unittest.mock import AsyncMock, MagicMock
+
+    pw_drv = PlaywrightDriver()
+
+    mock_pg = AsyncMock()
+    mock_loc = AsyncMock()
+    mock_ctx = AsyncMock()
+    mock_browser = AsyncMock()
+
+    # Browser & Page management with mock browser
+    pw_drv._browser = mock_browser
+    assert await pw_drv.new_context() == await mock_browser.new_context()
+    await pw_drv.close_page(mock_pg)
+    mock_pg.close.assert_called_once()
+
+    await pw_drv.close_context(mock_ctx)
+    mock_ctx.close.assert_called_once()
+
+    await pw_drv.close_browser(mock_browser)
+    mock_browser.close.assert_called_once()
+    assert pw_drv._browser is None
+
+    # Navigation & Actions
+    with pytest.raises(ValueError):
+        await pw_drv.goto(mock_pg, "")
+
+    await pw_drv.goto(mock_pg, "https://example.com", timeout=5000)
+    mock_pg.goto.assert_called_with("https://example.com", wait_until="networkidle", timeout=5000)
+
+    await pw_drv.reload(mock_pg)
+    mock_pg.reload.assert_called_once()
+
+    await pw_drv.get_title(mock_pg)
+    mock_pg.title.assert_called_once()
+
+    mock_pg.url = "https://example.com"
+    assert await pw_drv.get_url(mock_pg) == "https://example.com"
+
+    await pw_drv.wait_for_timeout(mock_pg, 100)
+    mock_pg.wait_for_timeout.assert_called_with(100)
+
+    await pw_drv.wait_for_load_state(mock_pg, "domcontentloaded", timeout=1000)
+    mock_pg.wait_for_load_state.assert_called_with("domcontentloaded", timeout=1000)
+
+    # Locators & Element operations
+    mock_pg.locator = MagicMock(return_value=mock_loc)
+    assert await pw_drv.locator(mock_pg, "#btn") == mock_loc
+
+    await pw_drv.click(mock_loc)
+    mock_loc.click.assert_called_once()
+
+    await pw_drv.dblclick(mock_loc)
+    mock_loc.dblclick.assert_called_once()
+
+    await pw_drv.check(mock_loc)
+    mock_loc.check.assert_called_once()
+
+    await pw_drv.fill(mock_loc, "text")
+    mock_loc.fill.assert_called_with("text")
+
+    await pw_drv.type(mock_loc, "text", delay=10)
+    mock_loc.type.assert_called_with("text", delay=10)
+
+    await pw_drv.clear(mock_loc)
+    await pw_drv.hover(mock_loc)
+    await pw_drv.select_option(mock_loc, "opt")
+    await pw_drv.drag_to(mock_loc, mock_loc)
+    await pw_drv.set_input_files(mock_loc, "file.txt")
+
+    await pw_drv.text_content(mock_loc)
+    await pw_drv.inner_html(mock_loc)
+    await pw_drv.inner_text(mock_loc)
+    await pw_drv.input_value(mock_loc)
+    await pw_drv.get_attribute(mock_loc, "href")
+    await pw_drv.count(mock_loc)
+    await pw_drv.nth(mock_loc, 0)
+    await pw_drv.first(mock_loc)
+    await pw_drv.scroll_into_view(mock_loc)
+    await pw_drv.is_visible(mock_loc)
+    await pw_drv.is_enabled(mock_loc)
+
+    await pw_drv.evaluate(mock_pg, "() => window.innerWidth", "arg")
+    mock_pg.evaluate.assert_called_with("() => window.innerWidth", "arg")
+
+    await pw_drv.screenshot(mock_pg)
+    await pw_drv.wait_for_selector(mock_pg, ".sel")
+    await pw_drv.frame_locator(mock_pg, "iframe")
+    await pw_drv.shutdown()
+
+
