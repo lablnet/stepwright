@@ -37,8 +37,8 @@ from .executor import (
     execute_step,
     execute_step_list,
     execute_tab,
-    clone_step_with_index,
 )
+from .handlers import clone_step_with_index
 
 # Re-export public API
 from .parser import (

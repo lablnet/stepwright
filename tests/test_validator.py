@@ -165,3 +165,44 @@ def test_validate_template_data_missing_keys():
     err_paths = [e.path for e in res.errors]
     assert "data.missing_price" in err_paths
     assert "data.missing_author" in err_paths
+
+
+def test_validator_edge_cases():
+    """Test detailed validation error branches across Tab, Parallel, Parameterized templates and Steps"""
+    from stepwright.step_types import PaginationConfig
+
+    bad_tab = TabTemplate(
+        tab="t1",
+        engine="invalid_browser",
+        driver=123,
+        proxy_rotation_strategy="invalid_strat",
+        pagination=PaginationConfig(strategy="invalid_strat"),
+        steps=[BaseStep(id="s1", action="click", object_type="invalid_type", object="btn")]
+    )
+    res = validate_template_format(bad_tab)
+    assert res.is_valid is False
+    assert len(res.errors) >= 3
+
+    next_pag_tab = TabTemplate(
+        tab="t2",
+        pagination=PaginationConfig(strategy="next"),
+        steps=[BaseStep(id="s1", action="click", object="#btn")]
+    )
+    res_pag = validate_template_format(next_pag_tab)
+    assert any(e.code == "MISSING_NEXT_BUTTON" for e in res_pag.errors)
+
+    bad_steps_tab = TabTemplate(
+        tab="t3",
+        steps=[
+            BaseStep(id="s1", action="open"),
+            BaseStep(id="s2", action="mouseMove"),
+            BaseStep(id="s3", action="if"),
+            BaseStep(id="s4", action="while"),
+            BaseStep(id="s5", action="try"),
+            "not_a_step_instance"
+        ]
+    )
+    res_steps = validate_template_format(bad_steps_tab)
+    assert res_steps.is_valid is False
+    assert len(res_steps.errors) >= 5
+
