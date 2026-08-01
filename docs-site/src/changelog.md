@@ -13,7 +13,14 @@ StepWright 2.0.0 is a milestone major release that elevates StepWright into an e
 
 ---
 
-### 🥷 2. Stealth Mode, Proxies & Smart Rotation
+### 🗄️ 2. Enterprise Storage Adapter Architecture
+- **`BaseStorageAdapter` Contract**: Abstract Base Class defining standard storage contracts (`connect`, `write`, `close`).
+- **14 Built-in Adapters**: Relational DBs (`SQLiteAdapter`, `PostgreSQLAdapter`, `MySQLAdapter`), NoSQL DBs (`MongoDBAdapter`, `DynamoDBAdapter`), Search (`ElasticsearchAdapter`), Cloud Storage (`S3StorageAdapter`, `GCSStorageAdapter`, `AzureBlobAdapter`), Queues (`RabbitMQAdapter`, `KafkaAdapter`), and Files (`JSONFileAdapter`, `CSVFileAdapter`, `XMLFileAdapter`).
+- **Custom Adapter Registration**: Register custom storage adapters via `register_adapter("name", CustomAdapter)`.
+
+---
+
+### 🥷 3. Stealth Mode, Proxies & Smart Rotation
 - **Smart Proxy Rotation Pool (`ProxyPool`)**: Multi-proxy pool manager supporting `round_robin`, `random`, and `sticky` rotation strategies.
 - **Auto-Healing & Cooldown**: Automatically tracks proxy failure counts and cools down banned/failing proxies (`COOLING`) for $N$ seconds, restoring them once healthy.
 - **Automated Stealth Fingerprint Evasion (`stealth=True`)**: Automatically injects init scripts (`add_init_script`) to mask `navigator.webdriver`, `navigator.languages`, `navigator.plugins`, `window.chrome`, `Permissions` API, and WebGL UNMASKED_VENDOR/RENDERER flags.
@@ -22,7 +29,7 @@ StepWright 2.0.0 is a milestone major release that elevates StepWright into an e
 
 ---
 
-### ⌨️ 3. Additional Step Actions & Page Controls
+### ⌨️ 4. Additional Step Actions & Page Controls
 - **6 New Declarative Actions**: `press`, `type`, `dialog`, `mouseMove`, `waitForNavigation`, `setHeaders`.
 - **Keyboard Key Presses (`press`)**: Send keyboard key press events (`"Enter"`, `"Control+A"`, `"Backspace"`) to targeted DOM elements or page keyboard.
 - **Typing with Delay (`type` / `clickAndType`)**: Focus elements, clear inputs (`clearBeforeInput=True`), and type text with human-like key delays (`inputDelay`).
@@ -32,21 +39,21 @@ StepWright 2.0.0 is a milestone major release that elevates StepWright into an e
 
 ---
 
-### 📡 4. Network & API Request Interception
+### 📡 5. Network & API Request Interception
 - **`intercept` Step Action**: Capture background JSON/XHR/Fetch REST API responses matching URL patterns/globs directly into collector memory without DOM parsing.
 - **Resource Blocking (`block_resources`)**: Abort heavy asset types (`image`, `stylesheet`, `font`, `media`, `script`) per template or globally in `RunOptions` for ultra-fast text/API extraction.
 - **Custom HTTP Headers (`extra_http_headers`)**: Set custom request headers (e.g. Authorization tokens, Referer, Accept-Language) per template or globally.
 
 ---
 
-### 🌐 5. Multi-Engine, Device Emulation & Concurrency Controls
+### 🌐 6. Multi-Engine, Device Emulation & Concurrency Controls
 - **Multi-Engine Browser Selection**: Switch between `chromium`, `firefox`, and `webkit` browser engines dynamically via `RunOptions(engine="firefox")` or per `TabTemplate`.
 - **Mobile Device Emulation**: Emulate mobile devices using Playwright's device catalog presets (`device="iPhone 13"`, `device="Pixel 5"`). Supports custom Viewports, User-Agent strings, Locales, Timezones, Geolocation, and Permissions.
 - **Concurrency Rate Limiting**: Prevent server overload and IP blocks using `max_concurrency` semaphore limits and `rate_limit_delay_ms` launch delays across `ParallelTemplate` and `ParameterizedTemplate` workflows.
 
 ---
 
-### 🔍 6. Developer Experience, Static Validation & Metrics
+### 🔍 7. Developer Experience, Static Validation & Metrics
 - **Static Template Format Validation (`validate_template_format`)**: Statically checks step configuration, action types, selector types, and mandatory parameter fields without launching Playwright.
 - **Expected Data Flow Validation (`validate_template_data`)**: Verifies that the template data flow extracts all required collector output keys.
 - **Debug Diagnostic Trace (`debug_on_failure=True`)**: Prints detailed step diagnostics (step ID, action, selector, value, current URL, error trace) whenever a step fails.

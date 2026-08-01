@@ -58,6 +58,27 @@ from .executor import (
 # Import Driver Architecture
 from .drivers import BaseDriver, PlaywrightDriver, get_driver
 
+# Import Storage Adapters Architecture
+from .adapters import (
+    BaseStorageAdapter,
+    JSONFileAdapter,
+    CSVFileAdapter,
+    XMLFileAdapter,
+    SQLiteAdapter,
+    PostgreSQLAdapter,
+    MySQLAdapter,
+    MongoDBAdapter,
+    DynamoDBAdapter,
+    ElasticsearchAdapter,
+    S3StorageAdapter,
+    GCSStorageAdapter,
+    AzureBlobAdapter,
+    RabbitMQAdapter,
+    KafkaAdapter,
+    get_adapter,
+    register_adapter,
+)
+
 # Import low-level scraper functions (for advanced usage)
 from .scraper import (
     get_browser,
@@ -86,6 +107,24 @@ __all__ = [
     "BaseDriver",
     "PlaywrightDriver",
     "get_driver",
+    # Storage Adapters
+    "BaseStorageAdapter",
+    "JSONFileAdapter",
+    "CSVFileAdapter",
+    "XMLFileAdapter",
+    "SQLiteAdapter",
+    "PostgreSQLAdapter",
+    "MySQLAdapter",
+    "MongoDBAdapter",
+    "DynamoDBAdapter",
+    "ElasticsearchAdapter",
+    "S3StorageAdapter",
+    "GCSStorageAdapter",
+    "AzureBlobAdapter",
+    "RabbitMQAdapter",
+    "KafkaAdapter",
+    "get_adapter",
+    "register_adapter",
     # Types
     "BaseStep",
     "NextButtonConfig",

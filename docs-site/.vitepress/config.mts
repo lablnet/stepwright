@@ -53,6 +53,7 @@ export default withMermaid(defineConfig({
                         { text: 'Page Controls & Actions', link: '/guide/advanced/page-controls-and-actions' },
                         { text: 'Pluggable Drivers', link: '/guide/advanced/drivers' },
                         { text: 'Smart Proxy Rotation', link: '/guide/advanced/proxy-rotation' },
+                        { text: 'Enterprise Storage Adapters', link: '/guide/advanced/storage-adapters' },
                     ]
                 },
                 {

@@ -155,6 +155,9 @@ class BaseStep:
     # Timeout configuration
     timeout: Optional[int] = None  # Step-specific timeout in ms (overrides default)
 
+    # Storage & Pipeline Options
+    storage_adapter: Optional[Any] = None  # BaseStorageAdapter or list or string name
+
     # Navigation enhancements
     waitUntil: Optional[
         Literal["load", "domcontentloaded", "networkidle", "commit"]
@@ -257,6 +260,9 @@ class TabTemplate:
     proxy_cooldown_seconds: int = 300
     captcha_selector: Optional[str] = None
     on_captcha: Optional[Callable] = None
+
+    # Storage & Pipeline Options
+    storage_adapter: Optional[Any] = None  # BaseStorageAdapter or list or string name
 
     # Driver Architecture
     driver: Optional[Union[str, Any]] = "playwright"
@@ -363,6 +369,9 @@ class RunOptions:
     proxy_cooldown_seconds: int = 300
     captcha_selector: Optional[str] = None
     on_captcha: Optional[Callable] = None
+
+    # Storage & Pipeline Options
+    storage_adapter: Optional[Any] = None  # BaseStorageAdapter or list or string name
 
     # Driver Architecture
     driver: Union[str, Any] = "playwright"

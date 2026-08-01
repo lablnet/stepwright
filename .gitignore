@@ -139,3 +139,5 @@ integration-output/
 *.pdf
 
 /test_env
+*.db
+*.sqlite

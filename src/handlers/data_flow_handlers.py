@@ -80,17 +80,27 @@ async def _handle_write_data(
     step: BaseStep,
     collector: Dict[str, Any],
 ) -> None:
-    """Handle writeData action (JSON, CSV, Excel, Text)"""
+    data_to_write = collector.get(step.key) if step.key else collector
+    if data_to_write is None:
+        print(f"   ⚠️  No data found for key '{step.key}' - skipping write")
+        return
+
+    # Check if a custom or named storage_adapter is configured on step
+    storage_adapter_spec = getattr(step, "storage_adapter", None)
+    if storage_adapter_spec:
+        from ..adapters import get_adapter, BaseStorageAdapter
+        adapters = storage_adapter_spec if isinstance(storage_adapter_spec, list) else [storage_adapter_spec]
+        for adp_spec in adapters:
+            adp = get_adapter(adp_spec)
+            adp.write(data_to_write, options={"file_path": step.value})
+            print(f"   💾 Saved data via storage adapter: {adp.__class__.__name__}")
+        return
+
     path = replace_data_placeholders(step.value or "", collector)
     if not path:
         raise ValueError(
             f"writeData requires a file path in 'value' for step '{step.id}'"
         )
-
-    data_to_write = collector.get(step.key) if step.key else collector
-    if data_to_write is None:
-        print(f"   ⚠️  No data found for key '{step.key}' - skipping write")
-        return
 
     file_path = pathlib.Path(path)
     # Ensure directory exists
