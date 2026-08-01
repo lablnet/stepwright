@@ -251,6 +251,10 @@ class TabTemplate:
     # Stealth & Proxy Options
     stealth: bool = False
     proxy: Optional[Union[Dict[str, str], ProxyConfig]] = None
+    proxy_pool: Optional[Any] = None  # ProxyPool instance or List of proxies
+    proxy_rotation_strategy: Literal["round_robin", "random", "sticky"] = "round_robin"
+    proxy_max_failures: int = 3
+    proxy_cooldown_seconds: int = 300
     captcha_selector: Optional[str] = None
     on_captcha: Optional[Callable] = None
 
@@ -353,6 +357,10 @@ class RunOptions:
     # Stealth & Proxy Options
     stealth: bool = False
     proxy: Optional[Union[Dict[str, str], ProxyConfig]] = None
+    proxy_pool: Optional[Any] = None  # ProxyPool instance or List of proxies
+    proxy_rotation_strategy: Literal["round_robin", "random", "sticky"] = "round_robin"
+    proxy_max_failures: int = 3
+    proxy_cooldown_seconds: int = 300
     captcha_selector: Optional[str] = None
     on_captcha: Optional[Callable] = None
 

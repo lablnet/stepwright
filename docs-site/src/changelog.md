@@ -13,7 +13,9 @@ StepWright 2.0.0 is a milestone major release that elevates StepWright into an e
 
 ---
 
-### 🥷 2. Stealth Mode & Anti-Bot Evasion Features
+### 🥷 2. Stealth Mode, Proxies & Smart Rotation
+- **Smart Proxy Rotation Pool (`ProxyPool`)**: Multi-proxy pool manager supporting `round_robin`, `random`, and `sticky` rotation strategies.
+- **Auto-Healing & Cooldown**: Automatically tracks proxy failure counts and cools down banned/failing proxies (`COOLING`) for $N$ seconds, restoring them once healthy.
 - **Automated Stealth Fingerprint Evasion (`stealth=True`)**: Automatically injects init scripts (`add_init_script`) to mask `navigator.webdriver`, `navigator.languages`, `navigator.plugins`, `window.chrome`, `Permissions` API, and WebGL UNMASKED_VENDOR/RENDERER flags.
 - **Proxy Configuration (`proxy` & `ProxyConfig`)**: Pass HTTP, HTTPS, or SOCKS5 proxies with optional authentication credentials per `TabTemplate` or globally in `RunOptions`.
 - **CAPTCHA & Challenge Detection Hooks (`on_captcha`)**: Detect Cloudflare challenge frames or CAPTCHA elements (`captcha_selector`) during step execution and invoke custom resolution callback handlers (`on_captcha`).

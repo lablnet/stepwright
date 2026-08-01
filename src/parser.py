@@ -68,6 +68,23 @@ async def _build_context_args(options: RunOptions, tmpl: Optional[TabTemplate] =
         context_args["extra_http_headers"] = extra_headers
 
     proxy_val = (tmpl and tmpl.proxy) or options.proxy
+    proxy_pool_val = (tmpl and tmpl.proxy_pool) or options.proxy_pool
+
+    if proxy_pool_val:
+        from .proxy_pool import ProxyPool
+        if not isinstance(proxy_pool_val, ProxyPool):
+            strategy = (tmpl and tmpl.proxy_rotation_strategy) or options.proxy_rotation_strategy
+            max_failures = (tmpl and tmpl.proxy_max_failures) or options.proxy_max_failures
+            cooldown = (tmpl and tmpl.proxy_cooldown_seconds) or options.proxy_cooldown_seconds
+            pool_instance = ProxyPool(proxy_pool_val, strategy=strategy, max_failures=max_failures, cooldown_seconds=cooldown)
+        else:
+            pool_instance = proxy_pool_val
+
+        session_id = tmpl.tab if tmpl else None
+        p_cfg = pool_instance.get_proxy(session_id=session_id)
+        if p_cfg:
+            proxy_val = p_cfg
+
     if proxy_val:
         if isinstance(proxy_val, ProxyConfig):
             p_dict = {"server": proxy_val.server}

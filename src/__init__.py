@@ -34,6 +34,9 @@ from .step_types import (
     ExecutionMetrics,
 )
 
+# Import proxy pool
+from .proxy_pool import ProxyPool, ProxyEntry, ProxyStatus
+
 # Import stealth handlers
 from .handlers import apply_stealth_scripts, check_and_handle_captcha
 
@@ -100,6 +103,10 @@ __all__ = [
     "ValidationResult",
     "StepMetric",
     "ExecutionMetrics",
+    # Proxy Pool
+    "ProxyPool",
+    "ProxyEntry",
+    "ProxyStatus",
     # Stealth
     "apply_stealth_scripts",
     "check_and_handle_captcha",

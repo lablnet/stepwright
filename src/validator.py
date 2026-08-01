@@ -178,6 +178,16 @@ def _validate_template_format_single(
                     )
                 )
 
+        if tmpl.proxy_pool:
+            if tmpl.proxy_rotation_strategy and tmpl.proxy_rotation_strategy not in ("round_robin", "random", "sticky"):
+                errors.append(
+                    ValidationError(
+                        path=f"{path}.proxy_rotation_strategy",
+                        message=f"Invalid proxy rotation strategy '{tmpl.proxy_rotation_strategy}'. Must be 'round_robin', 'random', or 'sticky'",
+                        code="INVALID_PROXY_STRATEGY",
+                    )
+                )
+
         if tmpl.driver:
             from .drivers import BaseDriver
             if not isinstance(tmpl.driver, str) and not isinstance(tmpl.driver, BaseDriver):
