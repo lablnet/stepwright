@@ -1,5 +1,22 @@
 # What's New in StepWright
 
+## 🚀 Version 1.3.0 - Concurrency, Multi-Engine & Emulation Update
+
+StepWright 1.3.0 introduces support for multi-engine browser selection (`chromium`, `firefox`, `webkit`), device emulation presets (e.g. `"iPhone 13"`), environment context configuration, and concurrency rate limiting.
+
+---
+
+### 🌐 Multi-Engine Selection
+Select your target browser engine dynamically via `RunOptions(engine="firefox")` or per `TabTemplate(engine="webkit")`.
+
+### 📱 Mobile & Device Emulation
+Emulate devices using Playwright's device catalog presets (`device="iPhone 13"`, `device="Pixel 5"`). Supports custom Viewports, User-Agent strings, Locales, Timezones, Geolocation, and Permissions.
+
+### 🚦 Concurrency & Rate Limiting Controls
+Prevent server overload and IP blocks by setting `max_concurrency` semaphore limits and `rate_limit_delay_ms` launch delays across `ParallelTemplate` and `ParameterizedTemplate` workflows.
+
+---
+
 ## 🚀 Version 1.2.0 - Developer Experience & Validation Update
 
 StepWright 1.2.0 introduces static template format validation, expected data flow validation, enhanced step debugging options, and runtime execution metrics tracking.

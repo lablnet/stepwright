@@ -17,8 +17,51 @@ from .step_types import (
     ExecutionMetrics,
 )
 from .executor import execute_tab
-from .scraper import get_browser, _shutdown_playwright
+from .scraper import get_browser, get_device_preset, _shutdown_playwright
 from .validator import validate_template_format, validate_template_data
+
+
+async def _build_context_args(options: RunOptions, tmpl: Optional[TabTemplate] = None) -> dict:
+    context_args = {}
+
+    device_name = (tmpl and tmpl.device) or options.device
+    if device_name:
+        preset = await get_device_preset(device_name)
+        context_args.update(preset)
+
+    user_agent = (tmpl and tmpl.user_agent) or options.user_agent
+    if user_agent:
+        context_args["user_agent"] = user_agent
+
+    viewport = (tmpl and tmpl.viewport) or options.viewport
+    if viewport:
+        context_args["viewport"] = viewport
+
+    locale = (tmpl and tmpl.locale) or options.locale
+    if locale:
+        context_args["locale"] = locale
+
+    timezone_id = (tmpl and tmpl.timezone_id) or options.timezone_id
+    if timezone_id:
+        context_args["timezone_id"] = timezone_id
+
+    geolocation = (tmpl and tmpl.geolocation) or options.geolocation
+    if geolocation:
+        context_args["geolocation"] = geolocation
+
+    permissions = (tmpl and tmpl.permissions) or options.permissions
+    if permissions:
+        context_args["permissions"] = permissions
+
+    is_mobile = (tmpl and tmpl.is_mobile) if (tmpl and tmpl.is_mobile is not None) else options.is_mobile
+    if is_mobile is not None:
+        context_args["is_mobile"] = is_mobile
+
+    has_touch = (tmpl and tmpl.has_touch) if (tmpl and tmpl.has_touch is not None) else options.has_touch
+    if has_touch is not None:
+        context_args["has_touch"] = has_touch
+
+    return context_args
 
 
 async def run_scraper(
@@ -40,46 +83,92 @@ async def run_scraper_with_metrics(
     Execute a scraping template and return both the gathered data and ExecutionMetrics.
     """
     options = options or RunOptions()
-    browser = await get_browser((options.browser or {"headless": True}))
+    engine = options.engine or "chromium"
+    browser = await get_browser((options.browser or {"headless": True}), engine=engine)
 
-    # Use a single context for efficiency unless templates specify otherwise
-    context = await browser.new_context()
+    # Base default context
+    default_context_args = await _build_context_args(options)
+    context = await browser.new_context(**default_context_args)
 
     all_results: List[Dict[str, Any]] = []
     metrics = ExecutionMetrics()
     start_time = time.perf_counter()
 
+    # Setup global semaphore for max_concurrency
+    global_conc = options.max_concurrency
+    global_sem = asyncio.Semaphore(global_conc) if (global_conc and global_conc > 0) else None
+
     async def process_template(
         tmpl: Union[TabTemplate, ParallelTemplate, ParameterizedTemplate],
         current_context,
+        delay_ms: Optional[int] = None,
     ) -> List[Dict[str, Any]]:
+        if delay_ms and delay_ms > 0:
+            await asyncio.sleep(delay_ms / 1000.0)
+
         results: List[Dict[str, Any]] = []
 
         if isinstance(tmpl, TabTemplate):
-            page = await current_context.new_page()
+            # Check if tab has custom context args or engine override
+            tab_context_args = await _build_context_args(options, tmpl)
+            target_context = current_context
+            custom_context = None
+
+            if tab_context_args != default_context_args:
+                custom_context = await browser.new_context(**tab_context_args)
+                target_context = custom_context
+
+            page = await target_context.new_page()
             try:
-                tab_results = await execute_tab(
-                    page,
-                    tmpl,
-                    options.onResult,
-                    metrics=metrics if options.collect_metrics else None,
-                    debug_on_failure=options.debug_on_failure,
-                )
+                if global_sem:
+                    async with global_sem:
+                        tab_results = await execute_tab(
+                            page,
+                            tmpl,
+                            options.onResult,
+                            metrics=metrics if options.collect_metrics else None,
+                            debug_on_failure=options.debug_on_failure,
+                        )
+                else:
+                    tab_results = await execute_tab(
+                        page,
+                        tmpl,
+                        options.onResult,
+                        metrics=metrics if options.collect_metrics else None,
+                        debug_on_failure=options.debug_on_failure,
+                    )
                 results.extend(tab_results)
             finally:
                 await page.close()
+                if custom_context:
+                    await custom_context.close()
 
         elif isinstance(tmpl, ParallelTemplate):
-            tasks = [process_template(t, current_context) for t in tmpl.templates]
+            p_conc = tmpl.max_concurrency
+            p_sem = asyncio.Semaphore(p_conc) if (p_conc and p_conc > 0) else None
+            p_delay = tmpl.rate_limit_delay_ms or options.rate_limit_delay_ms
+
+            async def run_parallel_item(item, idx):
+                item_delay = (idx * p_delay) if p_delay else None
+                if p_sem:
+                    async with p_sem:
+                        return await process_template(item, current_context, delay_ms=item_delay)
+                else:
+                    return await process_template(item, current_context, delay_ms=item_delay)
+
+            tasks = [run_parallel_item(t, i) for i, t in enumerate(tmpl.templates)]
             parallel_results = await asyncio.gather(*tasks)
             for res_list in parallel_results:
                 results.extend(res_list)
 
         elif isinstance(tmpl, ParameterizedTemplate):
-            parameterized_tasks = []
-            for val in tmpl.values:
-                from copy import deepcopy
+            p_conc = tmpl.max_concurrency
+            p_sem = asyncio.Semaphore(p_conc) if (p_conc and p_conc > 0) else None
+            p_delay = tmpl.rate_limit_delay_ms or options.rate_limit_delay_ms
 
+            from copy import deepcopy
+
+            async def run_param_val(val, idx):
                 cloned_tmpl = deepcopy(tmpl.template)
                 placeholder = f"{{{{{tmpl.parameter_key}}}}}"
                 if placeholder in cloned_tmpl.tab:
@@ -104,10 +193,17 @@ async def run_scraper_with_metrics(
                 if cloned_tmpl.perPageSteps:
                     inject_param(cloned_tmpl.perPageSteps, tmpl.parameter_key, val)
 
-                parameterized_tasks.append(
-                    process_template(cloned_tmpl, current_context)
-                )
+                item_delay = (idx * p_delay) if p_delay else None
 
+                if p_sem:
+                    async with p_sem:
+                        return await process_template(cloned_tmpl, current_context, delay_ms=item_delay)
+                else:
+                    return await process_template(cloned_tmpl, current_context, delay_ms=item_delay)
+
+            parameterized_tasks = [
+                run_param_val(val, idx) for idx, val in enumerate(tmpl.values)
+            ]
             param_results = await asyncio.gather(*parameterized_tasks)
             for res_list in param_results:
                 results.extend(res_list)

@@ -21,19 +21,42 @@ SelectorType = Literal["id", "class", "tag", "xpath"]
 _pw: Optional[Playwright] = None
 
 
-async def get_browser(params: Optional[dict] = None) -> Browser:
+async def get_browser(
+    params: Optional[dict] = None, engine: str = "chromium"
+) -> Browser:
     """
-    Get the browser (Chromium) instance.
+    Get the browser (Chromium, Firefox, or WebKit) instance.
 
-    :param params: Launch options passed to chromium.launch(**params)
+    :param params: Launch options passed to browser.launch(**params)
+    :param engine: 'chromium' | 'firefox' | 'webkit'
     :return: Browser
     """
     global _pw
     if _pw is None:
         _pw = await async_playwright().start()
     launch_params = params or {}
-    browser = await _pw.chromium.launch(**launch_params)
+
+    engine_name = (engine or "chromium").lower()
+    if engine_name == "firefox":
+        browser = await _pw.firefox.launch(**launch_params)
+    elif engine_name == "webkit":
+        browser = await _pw.webkit.launch(**launch_params)
+    else:
+        browser = await _pw.chromium.launch(**launch_params)
     return browser
+
+
+async def get_device_preset(device_name: str) -> dict:
+    """
+    Get Playwright device emulation preset by name (e.g. 'iPhone 13', 'Pixel 5').
+    """
+    global _pw
+    if _pw is None:
+        _pw = await async_playwright().start()
+
+    if device_name in _pw.devices:
+        return dict(_pw.devices[device_name])
+    raise ValueError(f"Unknown device preset '{device_name}'. Available: {list(_pw.devices.keys())[:10]}...")
 
 
 async def _shutdown_playwright() -> None:

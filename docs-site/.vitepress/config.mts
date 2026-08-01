@@ -47,6 +47,7 @@ export default withMermaid(defineConfig({
                         { text: 'Pagination & Scrolling', link: '/guide/advanced/pagination' },
                         { text: 'Downloads & PDFs', link: '/guide/advanced/downloads-and-pdfs' },
                         { text: 'Navigating IFrames', link: '/guide/advanced/iframes' },
+                        { text: 'Emulation & Concurrency', link: '/guide/advanced/emulation-and-concurrency' },
                     ]
                 },
                 {

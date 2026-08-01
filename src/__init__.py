@@ -26,6 +26,7 @@ from .step_types import (
     RunOptions,
     SelectorType,
     DataType,
+    EngineType,
     ValidationError,
     ValidationResult,
     StepMetric,
@@ -50,6 +51,7 @@ from .executor import (
 # Import low-level scraper functions (for advanced usage)
 from .scraper import (
     get_browser,
+    get_device_preset,
     navigate,
     elem,
     input,
@@ -81,6 +83,7 @@ __all__ = [
     "RunOptions",
     "SelectorType",
     "DataType",
+    "EngineType",
     "ValidationError",
     "ValidationResult",
     "StepMetric",
@@ -96,6 +99,7 @@ __all__ = [
     "execute_tab",
     # Low-level scraper
     "get_browser",
+    "get_device_preset",
     "navigate",
     "elem",
     "input",

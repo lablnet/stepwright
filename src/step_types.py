@@ -202,6 +202,9 @@ class PaginationConfig:
     paginateAllFirst: Optional[bool] = None
 
 
+EngineType = Literal["chromium", "firefox", "webkit"]
+
+
 @dataclass
 class TabTemplate:
     """Template for a scraping tab/workflow"""
@@ -212,12 +215,26 @@ class TabTemplate:
     steps: Optional[List[BaseStep]] = None
     pagination: Optional[PaginationConfig] = None
 
+    # Per-template Engine & Emulation Overrides
+    engine: Optional[EngineType] = None
+    device: Optional[str] = None
+    viewport: Optional[Dict[str, int]] = None
+    user_agent: Optional[str] = None
+    locale: Optional[str] = None
+    timezone_id: Optional[str] = None
+    geolocation: Optional[Dict[str, float]] = None
+    permissions: Optional[List[str]] = None
+    is_mobile: Optional[bool] = None
+    has_touch: Optional[bool] = None
+
 
 @dataclass
 class ParallelTemplate:
     """Groups multiple templates to run concurrently"""
 
     templates: List[Union[TabTemplate, "ParallelTemplate", "ParameterizedTemplate"]]
+    max_concurrency: Optional[int] = None
+    rate_limit_delay_ms: Optional[int] = None
 
 
 @dataclass
@@ -227,6 +244,8 @@ class ParameterizedTemplate:
     template: TabTemplate
     parameter_key: str  # The key to replace in steps (e.g., 'keyword')
     values: List[Any]  # The values to iterate over
+    max_concurrency: Optional[int] = None
+    rate_limit_delay_ms: Optional[int] = None
 
 
 @dataclass
@@ -276,8 +295,25 @@ class ExecutionMetrics:
 class RunOptions:
     """Options for running the scraper"""
 
-    browser: Optional[dict] = None  # passed to chromium.launch
+    browser: Optional[dict] = None  # passed to launch options
     onResult: Optional[Any] = None  # Callable[[Dict[str, Any], int], Any]
     debug_on_failure: bool = False  # Pause or print detailed diagnostics on failure
     collect_metrics: bool = False  # Track step execution metrics
+
+    # Engine & Emulation Options
+    engine: EngineType = "chromium"
+    device: Optional[str] = None
+    viewport: Optional[Dict[str, int]] = None
+    user_agent: Optional[str] = None
+    locale: Optional[str] = None
+    timezone_id: Optional[str] = None
+    geolocation: Optional[Dict[str, float]] = None
+    permissions: Optional[List[str]] = None
+    is_mobile: Optional[bool] = None
+    has_touch: Optional[bool] = None
+
+    # Concurrency & Rate Limiting
+    max_concurrency: Optional[int] = None
+    rate_limit_delay_ms: Optional[int] = None
+
 

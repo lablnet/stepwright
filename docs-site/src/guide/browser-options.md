@@ -41,19 +41,33 @@ results = await run_scraper(templates, RunOptions(
 ))
 ```
 
-## Disabling Media (Speed Optimization)
-If you don't need to see images or load heavy media, you can significantly speed up your scraping and save bandwidth by blocking them. Note that this requires access to the Playwright `page` directly, which you can do using a [Custom Action Callback](/guide/advanced/data-flows#custom-callbacks-advanced).
+## Engine Selection
+StepWright supports `chromium`, `firefox`, and `webkit` browser engines.
 
 ```python
-# A custom hook to block media on the page
-def block_media(page, collector, step):
-    async def route_handler(route):
-        if route.request.resource_type in ["image", "media", "font"]:
-            await route.abort()
-        else:
-            await route.continue_()
-            
-    # Note: Requires an async wrapper or using Playwright's sync API
-    page.route("**/*", route_handler)
-    return "Optimizations applied"
+results = await run_scraper(templates, RunOptions(
+    engine="firefox"
+))
 ```
+
+## Device Emulation
+Emulate mobile devices (e.g. `"iPhone 13"`, `"Pixel 5"`) and custom environment settings (User-Agent, Viewport, Locale, Geolocation):
+
+```python
+results = await run_scraper(templates, RunOptions(
+    device="iPhone 13",
+    locale="en-US",
+    timezone_id="America/New_York"
+))
+```
+
+## Concurrency & Rate Limiting
+Control maximum concurrent tab execution and delay launches:
+
+```python
+results = await run_scraper(templates, RunOptions(
+    max_concurrency=4,
+    rate_limit_delay_ms=250
+))
+```
+

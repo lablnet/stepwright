@@ -83,6 +83,9 @@ def validate_template_format(
     return ValidationResult(is_valid=is_valid, errors=errors, warnings=warnings)
 
 
+VALID_ENGINES = {"chromium", "firefox", "webkit"}
+
+
 def _validate_template_format_single(
     tmpl: Union[TabTemplate, ParallelTemplate, ParameterizedTemplate],
     path: str,
@@ -96,6 +99,15 @@ def _validate_template_format_single(
                     path=f"{path}.tab",
                     message="TabTemplate requires a non-empty 'tab' identifier",
                     code="MISSING_TAB_NAME",
+                )
+            )
+
+        if tmpl.engine and tmpl.engine not in VALID_ENGINES:
+            errors.append(
+                ValidationError(
+                    path=f"{path}.engine",
+                    message=f"Invalid browser engine '{tmpl.engine}'. Must be one of {VALID_ENGINES}",
+                    code="INVALID_ENGINE",
                 )
             )
 
@@ -147,6 +159,14 @@ def _validate_template_format_single(
                 )
 
     elif isinstance(tmpl, ParallelTemplate):
+        if tmpl.max_concurrency is not None and tmpl.max_concurrency <= 0:
+            errors.append(
+                ValidationError(
+                    path=f"{path}.max_concurrency",
+                    message="max_concurrency must be a positive integer greater than 0",
+                    code="INVALID_CONCURRENCY",
+                )
+            )
         if not tmpl.templates:
             errors.append(
                 ValidationError(
@@ -162,6 +182,14 @@ def _validate_template_format_single(
                 )
 
     elif isinstance(tmpl, ParameterizedTemplate):
+        if tmpl.max_concurrency is not None and tmpl.max_concurrency <= 0:
+            errors.append(
+                ValidationError(
+                    path=f"{path}.max_concurrency",
+                    message="max_concurrency must be a positive integer greater than 0",
+                    code="INVALID_CONCURRENCY",
+                )
+            )
         if not tmpl.template:
             errors.append(
                 ValidationError(
