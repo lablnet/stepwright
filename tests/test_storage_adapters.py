@@ -284,3 +284,61 @@ def test_adapter_empty_records_and_close(tmp_path):
     s3_adp.s3_client = MagicMock()
     assert s3_adp.write([]) is True
     s3_adp.close()
+
+
+def test_xml_and_json_adapter_edge_cases(tmp_path):
+    """Test XML and JSON adapter edge cases including non-dict items and JSON file reading"""
+    import xml.etree.ElementTree as ET
+
+    xml_path = str(tmp_path / "edge.xml")
+    xml_adp = XMLFileAdapter(file_path=xml_path)
+
+    # Primitive non-dict record elements
+    records = ["simple_string", 456, True]
+    assert xml_adp.write(records) is True
+
+    # Test _indent directly
+    root = ET.Element("root")
+    c1 = ET.SubElement(root, "c1")
+    c2 = ET.SubElement(c1, "c2")
+    c2.text = "nested text"
+    xml_adp._indent(root, level=1)
+    xml_adp.close()
+
+    # JSON File Adapter with existing non-list data
+    json_path = str(tmp_path / "dict_only.json")
+    with open(json_path, "w") as f:
+        f.write('{"single": "object"}')
+
+    json_adp = JSONFileAdapter(file_path=json_path)
+    assert json_adp.write({"second": "object"}) is True
+    json_adp.close()
+
+    with open(json_path) as f:
+        import json
+        data = json.load(f)
+        assert len(data) == 2
+
+
+def test_kafka_and_es_and_azure_close_and_options():
+    """Test close methods and fallback print outputs for message queue and cloud adapters"""
+    # Kafka close with exception
+    kafka_adp = KafkaAdapter(topic="t")
+    mock_prod = MagicMock()
+    mock_prod.close.side_effect = Exception("Close error")
+    kafka_adp.producer = mock_prod
+    kafka_adp.close()
+    assert kafka_adp.producer is None
+
+    # Elasticsearch close with exception
+    es_adp = ElasticsearchAdapter(index="i")
+    mock_client = MagicMock()
+    mock_client.close.side_effect = Exception("Close error")
+    es_adp.client = mock_client
+    es_adp.close()
+    assert es_adp.client is None
+
+    # AzureBlob close
+    az_adp = AzureBlobAdapter(container_name="c")
+    az_adp.close()
+

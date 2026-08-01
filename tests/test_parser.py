@@ -393,3 +393,37 @@ class TestDataPlaceholders:
         assert len(results) == 1
         assert "pdf_file" in results[0]
         assert results[0]["meeting_title"] == "StepWright Test Page"
+
+
+class TestBuildContextArgs:
+    """Tests for _build_context_args helper in parser.py"""
+
+    @pytest.mark.asyncio
+    async def test_build_context_args_options_and_tmpl(self):
+        from stepwright.parser import _build_context_args
+
+        options = RunOptions(
+            user_agent="AgentX",
+            viewport={"width": 1920, "height": 1080},
+            locale="fr-FR",
+            timezone_id="Europe/Paris",
+            geolocation={"latitude": 48.8566, "longitude": 2.3522},
+            permissions=["geolocation"],
+            is_mobile=True,
+            device="iPhone 12"
+        )
+        tmpl = TabTemplate(
+            tab="test_ctx",
+            user_agent="AgentY",
+            is_mobile=False
+        )
+
+        ctx = await _build_context_args(options, tmpl)
+        assert ctx["user_agent"] == "AgentY"
+        assert ctx["viewport"] == {"width": 1920, "height": 1080}
+        assert ctx["locale"] == "fr-FR"
+        assert ctx["timezone_id"] == "Europe/Paris"
+        assert ctx["geolocation"] == {"latitude": 48.8566, "longitude": 2.3522}
+        assert ctx["permissions"] == ["geolocation"]
+        assert ctx["is_mobile"] is False
+

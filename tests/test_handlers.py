@@ -105,3 +105,74 @@ async def test_page_and_network_actions():
     step_ic_no_val = BaseStep(id="i1", action="intercept")
     with pytest.raises(ValueError):
         await _handle_intercept(mock_page, step_ic_no_val, collector)
+
+
+@pytest.mark.asyncio
+async def test_page_storage_and_viewport_handlers():
+    from stepwright.handlers.page_actions import (
+        _handle_wait_for_selector,
+        _handle_get_meta,
+        _handle_get_cookies,
+        _handle_set_cookies,
+        _handle_get_local_storage,
+        _handle_set_local_storage,
+        _handle_get_session_storage,
+        _handle_set_session_storage,
+        _handle_get_viewport_size,
+        _handle_set_viewport_size,
+    )
+
+    mock_page = AsyncMock()
+    mock_page.url = "https://example.com"
+    collector = {}
+
+    # Wait for selector missing object raises ValueError
+    with pytest.raises(ValueError):
+        await _handle_wait_for_selector(mock_page, BaseStep(id="w1", action="waitForSelector"), collector)
+
+    # Set cookies validation errors
+    with pytest.raises(ValueError):
+        await _handle_set_cookies(mock_page, BaseStep(id="c1", action="setCookies", object="name"), collector)
+    with pytest.raises(ValueError):
+        await _handle_set_cookies(mock_page, BaseStep(id="c2", action="setCookies", value="val"), collector)
+
+    # Set local storage validation errors
+    with pytest.raises(ValueError):
+        await _handle_set_local_storage(mock_page, BaseStep(id="l1", action="setLocalStorage", value="val"), collector)
+    with pytest.raises(ValueError):
+        await _handle_set_local_storage(mock_page, BaseStep(id="l2", action="setLocalStorage", object="key"), collector)
+
+    # Set session storage validation errors
+    with pytest.raises(ValueError):
+        await _handle_set_session_storage(mock_page, BaseStep(id="s1", action="setSessionStorage", value="val"), collector)
+    with pytest.raises(ValueError):
+        await _handle_set_session_storage(mock_page, BaseStep(id="s2", action="setSessionStorage", object="key"), collector)
+
+    # Set viewport size validation error
+    with pytest.raises(ValueError):
+        await _handle_set_viewport_size(mock_page, BaseStep(id="v1", action="setViewportSize"), collector)
+
+    # Storage and viewport successes with mock page
+    mock_page.evaluate.side_effect = [
+        "meta_content",  # getMeta
+        "storage_val",   # getLocalStorage
+        "session_val",   # getSessionStorage
+    ]
+    mock_page.context.cookies = AsyncMock(return_value=[{"name": "session_id", "value": "xyz123"}])
+
+    await _handle_get_meta(mock_page, BaseStep(id="m1", action="getMeta", object="description", key="desc"), collector)
+    assert collector["desc"] == "meta_content"
+
+    await _handle_get_cookies(mock_page, BaseStep(id="gc1", action="getCookies", object="session_id", key="my_cookie"), collector)
+    assert collector["my_cookie"] == "xyz123"
+
+    await _handle_get_local_storage(mock_page, BaseStep(id="gl1", action="getLocalStorage", object="user_token", key="token"), collector)
+    assert collector["token"] == "storage_val"
+
+    await _handle_get_session_storage(mock_page, BaseStep(id="gs1", action="getSessionStorage", object="state_key", key="state"), collector)
+    assert collector["state"] == "session_val"
+
+    mock_page.viewport_size = {"width": 1280, "height": 720}
+    await _handle_get_viewport_size(mock_page, BaseStep(id="gv1", action="getViewportSize", key="vp"), collector)
+    assert collector["vp"] == {"width": 1280, "height": 720}
+
