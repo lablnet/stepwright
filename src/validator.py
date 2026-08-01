@@ -76,6 +76,8 @@ def validate_template_format(
 
     :param templates: Single template object or list of templates
     :return: ValidationResult with errors and warnings
+
+    @since 2.0.0
     """
     errors: List[ValidationError] = []
     warnings: List[str] = []
@@ -460,6 +462,8 @@ def validate_template_data(
     :param templates: Single template or list of templates
     :param expected_keys: List of expected collector key names
     :return: ValidationResult with missing keys detailed as errors
+
+    @since 2.0.0
     """
     extracted_keys: Set[str] = set()
 

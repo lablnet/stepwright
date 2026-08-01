@@ -24,6 +24,8 @@ async def _handle_intercept(
     Handle network/API request interception.
     Registers a response listener on page matching pattern in step.object or step.value.
     Stores extracted body (json/text) into collector[key or step.id].
+
+    @since 2.0.0
     """
     url_pattern = replace_data_placeholders(
         step.object or step.value or "", collector

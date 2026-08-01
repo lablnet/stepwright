@@ -14,6 +14,8 @@ class BaseDriver(ABC):
 
     Any custom driver (Playwright, Selenium, Pyppeteer, HTTP/Requests) must
     implement this contract to be pluggable into StepWright workflows.
+
+    @since 2.0.0
     """
 
     @abstractmethod

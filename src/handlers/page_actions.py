@@ -362,7 +362,11 @@ async def _handle_press(
     collector: Dict[str, Any],
     scope_locator: Optional[Any] = None,
 ) -> None:
-    """Handle press action - send keyboard key press event"""
+    """
+    Handle press action - send keyboard key press event
+
+    @since 2.0.0
+    """
     key_name = replace_data_placeholders(step.value or "", collector) or step.value
     if not key_name:
         raise ValueError("press step requires 'value' specifying key name (e.g., 'Enter', 'Control+A')")
@@ -382,7 +386,11 @@ async def _handle_type(
     collector: Dict[str, Any],
     scope_locator: Optional[Any] = None,
 ) -> None:
-    """Handle type / clickAndType action - type text into an input with character delay"""
+    """
+    Handle type / clickAndType action - type text into an input with character delay
+
+    @since 2.0.0
+    """
     if not step.object:
         raise ValueError("type step requires 'object' selector")
     if step.value is None:
@@ -402,7 +410,11 @@ async def _handle_type(
 async def _handle_dialog(
     page: Page, step: BaseStep, collector: Dict[str, Any]
 ) -> None:
-    """Handle dialog action - configure browser alert/confirm/prompt auto-handler"""
+    """
+    Handle dialog action - configure browser alert/confirm/prompt auto-handler
+
+    @since 2.0.0
+    """
     mode = (step.value or "accept").lower()
     prompt_text = step.object or ""
 
@@ -424,7 +436,11 @@ async def _handle_mouse_move(
     collector: Dict[str, Any],
     scope_locator: Optional[Any] = None,
 ) -> None:
-    """Handle mouseMove action - move mouse cursor to element or (x, y) coordinates"""
+    """
+    Handle mouseMove action - move mouse cursor to element or (x, y) coordinates
+
+    @since 2.0.0
+    """
     if step.object:
         loc = locator_for(scope_locator or page, step.object_type, step.object)
         await loc.hover()
@@ -443,7 +459,11 @@ async def _handle_mouse_move(
 async def _handle_wait_for_navigation(
     page: Page, step: BaseStep, collector: Dict[str, Any]
 ) -> None:
-    """Handle waitForNavigation action - wait for page load state"""
+    """
+    Handle waitForNavigation action - wait for page load state
+
+    @since 2.0.0
+    """
     state = (step.value or "networkidle").lower()
     timeout = step.wait or 30000
     print(f"   ⏳ Waiting for navigation load state: {state}")
@@ -456,7 +476,11 @@ async def _handle_wait_for_navigation(
 async def _handle_set_headers(
     page: Page, step: BaseStep, collector: Dict[str, Any]
 ) -> None:
-    """Handle setHeaders action - set extra HTTP request headers dynamically"""
+    """
+    Handle setHeaders action - set extra HTTP request headers dynamically
+
+    @since 2.0.0
+    """
     if not step.value and not step.key:
         raise ValueError("setHeaders step requires 'object' (header name) & 'value' (header value)")
 

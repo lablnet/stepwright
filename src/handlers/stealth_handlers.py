@@ -75,6 +75,8 @@ async def apply_stealth_scripts(target: Union[BrowserContext, Page]) -> None:
     """
     Inject stealth initialization scripts into a BrowserContext or Page
     to bypass automated bot detection scripts.
+
+    @since 2.0.0
     """
     print("   🥷 Applying Stealth Anti-Bot Evasion scripts")
     if hasattr(target, "add_init_script"):
@@ -89,6 +91,8 @@ async def check_and_handle_captcha(
     """
     Check if a CAPTCHA or Cloudflare challenge element is present on the page.
     If detected and on_captcha callback is provided, invoke on_captcha(page, collector).
+
+    @since 2.0.0
     """
     custom_selector = getattr(template_or_options, "captcha_selector", None)
     on_captcha_fn = getattr(template_or_options, "on_captcha", None)

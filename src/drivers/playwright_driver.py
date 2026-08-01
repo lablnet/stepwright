@@ -23,6 +23,8 @@ from .base_driver import BaseDriver
 class PlaywrightDriver(BaseDriver):
     """
     Default Playwright Driver implementation for StepWright.
+
+    @since 2.0.0
     """
 
     def __init__(self) -> None:

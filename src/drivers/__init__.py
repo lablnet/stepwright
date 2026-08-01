@@ -16,6 +16,8 @@ _active_driver: Union[BaseDriver, None] = None
 def set_active_driver(driver: Union[str, BaseDriver, None]) -> BaseDriver:
     """
     Set the active thread/execution driver instance.
+
+    @since 2.0.0
     """
     global _active_driver
     _active_driver = get_driver(driver)
@@ -28,6 +30,8 @@ def get_driver(driver: Union[str, BaseDriver, None] = None) -> BaseDriver:
 
     :param driver: Driver name string (e.g. 'playwright') or a BaseDriver instance
     :return: BaseDriver instance
+
+    @since 2.0.0
     """
     global _default_driver_instance, _active_driver
     if driver is None:
