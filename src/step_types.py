@@ -57,6 +57,7 @@ class BaseStep:
         "readData",
         "writeData",
         "custom",
+        "intercept",
     ] = "navigate"
     value: Optional[str] = None
     key: Optional[str] = None
@@ -227,6 +228,10 @@ class TabTemplate:
     is_mobile: Optional[bool] = None
     has_touch: Optional[bool] = None
 
+    # Network & Interception Options
+    block_resources: Optional[List[str]] = None
+    extra_http_headers: Optional[Dict[str, str]] = None
+
 
 @dataclass
 class ParallelTemplate:
@@ -315,5 +320,10 @@ class RunOptions:
     # Concurrency & Rate Limiting
     max_concurrency: Optional[int] = None
     rate_limit_delay_ms: Optional[int] = None
+
+    # Network & Interception Options
+    block_resources: Optional[List[str]] = None
+    extra_http_headers: Optional[Dict[str, str]] = None
+
 
 

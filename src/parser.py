@@ -61,6 +61,10 @@ async def _build_context_args(options: RunOptions, tmpl: Optional[TabTemplate] =
     if has_touch is not None:
         context_args["has_touch"] = has_touch
 
+    extra_headers = (tmpl and tmpl.extra_http_headers) or options.extra_http_headers
+    if extra_headers:
+        context_args["extra_http_headers"] = extra_headers
+
     return context_args
 
 

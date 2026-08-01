@@ -1,5 +1,22 @@
 # What's New in StepWright
 
+## 🚀 Version 1.4.0 - Network & API Interception Update
+
+StepWright 1.4.0 introduces the `intercept` step action for capturing background JSON/XHR API responses, resource blocking (`block_resources`), and custom HTTP header injection (`extra_http_headers`).
+
+---
+
+### 📡 API Response Interception (`intercept`)
+Capture background JSON/XHR/Fetch responses matching URL patterns (e.g. `"**/api/v1/products*"`) directly into collector memory without parsing DOM elements.
+
+### 🛡️ Resource Blocking (`block_resources`)
+Block unwanted heavy resource types (`image`, `stylesheet`, `font`, `media`, `script`) per template or globally in `RunOptions` for ultra-fast text/data extraction.
+
+### 🔑 Custom Request Headers (`extra_http_headers`)
+Inject custom HTTP request headers (e.g. Authorization tokens, Referer, Accept-Language) per template or globally.
+
+---
+
 ## 🚀 Version 1.3.0 - Concurrency, Multi-Engine & Emulation Update
 
 StepWright 1.3.0 introduces support for multi-engine browser selection (`chromium`, `firefox`, `webkit`), device emulation presets (e.g. `"iPhone 13"`), environment context configuration, and concurrency rate limiting.

@@ -40,6 +40,7 @@ fallbackSelectors: list = [] # List of dicts: [{"object_type": "class", "object"
 | `dragAndDrop` | Drag elements | `object` (source), `targetObject` (destination) |
 | `getUrl` | Current page URL | `key="url"` |
 | `getCookies` | Request cookies | `key="cookies"` |
+| `intercept` | Capture XHR/Fetch response | `object="**/api/*"`, `key="my_key"` |
 
 ## Error Resilience
 

@@ -51,6 +51,7 @@ VALID_ACTIONS = {
     "readData",
     "writeData",
     "custom",
+    "intercept",
 }
 
 VALID_SELECTOR_TYPES = {"id", "class", "tag", "xpath"}
@@ -375,6 +376,14 @@ def _validate_step_format(
                 path=f"{path}.callback",
                 message="Action 'custom' requires a 'callback' function",
                 code="MISSING_CALLBACK",
+            )
+        )
+    elif action == "intercept" and not (step.object or step.value):
+        errors.append(
+            ValidationError(
+                path=path,
+                message="Action 'intercept' requires a target URL pattern in 'object' or 'value'",
+                code="MISSING_INTERCEPT_PATTERN",
             )
         )
 

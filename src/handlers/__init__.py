@@ -58,6 +58,12 @@ from .data_flow_handlers import (
     _handle_custom_callback,
 )
 
+# Import network handlers
+from .network_handlers import (
+    _handle_intercept,
+    setup_resource_blocking,
+)
+
 __all__ = [
     # Data handlers
     "_handle_data_extraction",
@@ -95,4 +101,7 @@ __all__ = [
     "_handle_read_data",
     "_handle_write_data",
     "_handle_custom_callback",
+    # Network handlers
+    "_handle_intercept",
+    "setup_resource_blocking",
 ]

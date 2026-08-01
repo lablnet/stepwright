@@ -59,6 +59,9 @@ from .handlers import (
     _handle_read_data,
     _handle_write_data,
     _handle_custom_callback,
+    # Network handlers
+    _handle_intercept,
+    setup_resource_blocking,
 )
 
 
@@ -364,6 +367,9 @@ async def _execute_step_internal(
         elif step.action == "custom":
             await _handle_custom_callback(page, step, collector)
 
+        elif step.action == "intercept":
+            await _handle_intercept(page, step, collector)
+
         # trailing wait
         if step.wait and step.wait > 0:
             await page.wait_for_timeout(step.wait)
@@ -426,6 +432,13 @@ async def execute_tab(
     """Execute a complete tab template with pagination"""
     results: List[Dict[str, Any]] = []
     print(f"=== TAB {template.tab} ===")
+
+    # Configure per-tab resource blocking and extra HTTP headers
+    if template.block_resources:
+        await setup_resource_blocking(page, template.block_resources)
+
+    if template.extra_http_headers:
+        await page.set_extra_http_headers(template.extra_http_headers)
 
     # 1) initSteps
     if template.initSteps:
