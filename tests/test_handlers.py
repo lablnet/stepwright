@@ -183,6 +183,7 @@ async def test_network_handlers_comprehensive():
     from stepwright.handlers.network_handlers import _handle_intercept, setup_resource_blocking
 
     mock_page = AsyncMock()
+    mock_page.on = MagicMock()
     collector = {}
 
     # Intercept response listener setup and execution
