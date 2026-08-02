@@ -106,7 +106,7 @@ async def _handle_save_pdf(page: Page, step: BaseStep, collector: Dict[str, Any]
                         const iframes = Array.from(document.querySelectorAll('iframe'));
                         const iframe = iframes.find(f => {
                             const s = f.getAttribute('src') || '';
-                            return /\.pdf/i.test(s) || s.includes('pdf');
+                            return /\\.pdf/i.test(s) || s.includes('pdf');
                         });
                         if (iframe && iframe.getAttribute('src')) return getAbs(iframe.getAttribute('src'));
 
@@ -427,4 +427,3 @@ async def _handle_download_pdf(page: Page, step: BaseStep, collector: Dict[str, 
         print(f"   📄 downloadPDF failed: {e}")
     finally:
         collector[key] = saved_path
-
