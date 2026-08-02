@@ -4,13 +4,30 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import json
+from dataclasses import dataclass, fields
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Literal, Optional, Union
 
 # Type aliases
 SelectorType = Literal["id", "class", "tag", "xpath"]
 DataType = Literal["text", "html", "value", "default", "attribute", "custom"]
 ClickModifier = Literal["Control", "Meta", "Shift", "Alt"]
+
+
+def _serialize_value(val: Any) -> Any:
+    """Helper to serialize values to JSON-friendly data structures."""
+    if val is None:
+        return None
+    if hasattr(val, "to_dict"):
+        return val.to_dict()
+    if isinstance(val, list):
+        return [_serialize_value(item) for item in val if item is not None]
+    if isinstance(val, dict):
+        return {k: _serialize_value(v) for k, v in val.items() if v is not None and not callable(v)}
+    if callable(val):
+        return None
+    return val
 
 
 @dataclass
@@ -182,6 +199,39 @@ class BaseStep:
         None  # Continue execution even if element not found (default: True for some actions)
     )
 
+    def to_dict(self) -> Dict[str, Any]:
+        result = {}
+        for f in fields(self):
+            val = getattr(self, f.name)
+            if val is not None and not callable(val):
+                result[f.name] = _serialize_value(val)
+        return result
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> BaseStep:
+        d = dict(data)
+        if "subSteps" in d and d["subSteps"] is not None:
+            d["subSteps"] = [BaseStep.from_dict(s) if isinstance(s, dict) else s for s in d["subSteps"]]
+        field_names = {f.name for f in fields(cls)}
+        filtered = {k: v for k, v in d.items() if k in field_names}
+        return cls(**filtered)
+
+    def to_json(self, file_path: Optional[Union[str, Path]] = None, indent: int = 2) -> str:
+        s = json.dumps(self.to_dict(), indent=indent)
+        if file_path:
+            Path(file_path).write_text(s, encoding="utf-8")
+        return s
+
+    @classmethod
+    def from_json(cls, source: Union[str, Path]) -> BaseStep:
+        p = Path(source) if isinstance(source, (str, Path)) else None
+        if p and p.exists() and p.is_file():
+            content = p.read_text(encoding="utf-8")
+        else:
+            content = str(source)
+        data = json.loads(content)
+        return cls.from_dict(data)
+
 
 @dataclass
 class NextButtonConfig:
@@ -191,6 +241,14 @@ class NextButtonConfig:
     object: str
     wait: Optional[int] = None
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {f.name: getattr(self, f.name) for f in fields(self) if getattr(self, f.name) is not None}
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> NextButtonConfig:
+        field_names = {f.name for f in fields(cls)}
+        return cls(**{k: v for k, v in data.items() if k in field_names})
+
 
 @dataclass
 class ScrollConfig:
@@ -198,6 +256,14 @@ class ScrollConfig:
 
     offset: Optional[int] = None
     delay: Optional[int] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {f.name: getattr(self, f.name) for f in fields(self) if getattr(self, f.name) is not None}
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> ScrollConfig:
+        field_names = {f.name for f in fields(cls)}
+        return cls(**{k: v for k, v in data.items() if k in field_names})
 
 
 @dataclass
@@ -211,6 +277,24 @@ class PaginationConfig:
     paginationFirst: Optional[bool] = None
     paginateAllFirst: Optional[bool] = None
 
+    def to_dict(self) -> Dict[str, Any]:
+        res = {}
+        for f in fields(self):
+            v = getattr(self, f.name)
+            if v is not None:
+                res[f.name] = _serialize_value(v)
+        return res
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> PaginationConfig:
+        d = dict(data)
+        if "nextButton" in d and isinstance(d["nextButton"], dict):
+            d["nextButton"] = NextButtonConfig.from_dict(d["nextButton"])
+        if "scroll" in d and isinstance(d["scroll"], dict):
+            d["scroll"] = ScrollConfig.from_dict(d["scroll"])
+        field_names = {f.name for f in fields(cls)}
+        return cls(**{k: v for k, v in d.items() if k in field_names})
+
 
 @dataclass
 class ProxyConfig:
@@ -220,6 +304,14 @@ class ProxyConfig:
     username: Optional[str] = None
     password: Optional[str] = None
     bypass: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {f.name: getattr(self, f.name) for f in fields(self) if getattr(self, f.name) is not None}
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> ProxyConfig:
+        field_names = {f.name for f in fields(cls)}
+        return cls(**{k: v for k, v in data.items() if k in field_names})
 
 
 EngineType = Literal["chromium", "firefox", "webkit"]
@@ -267,6 +359,46 @@ class TabTemplate:
     # Driver Architecture
     driver: Optional[Union[str, Any]] = "playwright"
 
+    def to_dict(self) -> Dict[str, Any]:
+        result = {"type": "TabTemplate"}
+        for f in fields(self):
+            val = getattr(self, f.name)
+            if val is not None and not callable(val):
+                result[f.name] = _serialize_value(val)
+        return result
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> TabTemplate:
+        d = dict(data)
+        d.pop("type", None)
+        for key in ("initSteps", "perPageSteps", "steps"):
+            if key in d and d[key] is not None:
+                d[key] = [BaseStep.from_dict(s) if isinstance(s, dict) else s for s in d[key]]
+        if "pagination" in d and isinstance(d["pagination"], dict):
+            d["pagination"] = PaginationConfig.from_dict(d["pagination"])
+        if "proxy" in d and isinstance(d["proxy"], dict):
+            if "server" in d["proxy"]:
+                d["proxy"] = ProxyConfig.from_dict(d["proxy"])
+        field_names = {f.name for f in fields(cls)}
+        filtered = {k: v for k, v in d.items() if k in field_names}
+        return cls(**filtered)
+
+    def to_json(self, file_path: Optional[Union[str, Path]] = None, indent: int = 2) -> str:
+        s = json.dumps(self.to_dict(), indent=indent)
+        if file_path:
+            Path(file_path).write_text(s, encoding="utf-8")
+        return s
+
+    @classmethod
+    def from_json(cls, source: Union[str, Path]) -> TabTemplate:
+        p = Path(source) if isinstance(source, (str, Path)) else None
+        if p and p.exists() and p.is_file():
+            content = p.read_text(encoding="utf-8")
+        else:
+            content = str(source)
+        data = json.loads(content)
+        return cls.from_dict(data)
+
 
 @dataclass
 class ParallelTemplate:
@@ -275,6 +407,40 @@ class ParallelTemplate:
     templates: List[Union[TabTemplate, "ParallelTemplate", "ParameterizedTemplate"]]
     max_concurrency: Optional[int] = None
     rate_limit_delay_ms: Optional[int] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        result = {"type": "ParallelTemplate"}
+        for f in fields(self):
+            val = getattr(self, f.name)
+            if val is not None and not callable(val):
+                result[f.name] = _serialize_value(val)
+        return result
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> ParallelTemplate:
+        d = dict(data)
+        d.pop("type", None)
+        if "templates" in d and isinstance(d["templates"], list):
+            d["templates"] = [parse_template_from_dict(t) if isinstance(t, dict) else t for t in d["templates"]]
+        field_names = {f.name for f in fields(cls)}
+        filtered = {k: v for k, v in d.items() if k in field_names}
+        return cls(**filtered)
+
+    def to_json(self, file_path: Optional[Union[str, Path]] = None, indent: int = 2) -> str:
+        s = json.dumps(self.to_dict(), indent=indent)
+        if file_path:
+            Path(file_path).write_text(s, encoding="utf-8")
+        return s
+
+    @classmethod
+    def from_json(cls, source: Union[str, Path]) -> ParallelTemplate:
+        p = Path(source) if isinstance(source, (str, Path)) else None
+        if p and p.exists() and p.is_file():
+            content = p.read_text(encoding="utf-8")
+        else:
+            content = str(source)
+        data = json.loads(content)
+        return cls.from_dict(data)
 
 
 @dataclass
@@ -286,6 +452,67 @@ class ParameterizedTemplate:
     values: List[Any]  # The values to iterate over
     max_concurrency: Optional[int] = None
     rate_limit_delay_ms: Optional[int] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        result = {"type": "ParameterizedTemplate"}
+        for f in fields(self):
+            val = getattr(self, f.name)
+            if val is not None and not callable(val):
+                result[f.name] = _serialize_value(val)
+        return result
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> ParameterizedTemplate:
+        d = dict(data)
+        d.pop("type", None)
+        if "template" in d and isinstance(d["template"], dict):
+            d["template"] = TabTemplate.from_dict(d["template"])
+        field_names = {f.name for f in fields(cls)}
+        filtered = {k: v for k, v in d.items() if k in field_names}
+        return cls(**filtered)
+
+    def to_json(self, file_path: Optional[Union[str, Path]] = None, indent: int = 2) -> str:
+        s = json.dumps(self.to_dict(), indent=indent)
+        if file_path:
+            Path(file_path).write_text(s, encoding="utf-8")
+        return s
+
+    @classmethod
+    def from_json(cls, source: Union[str, Path]) -> ParameterizedTemplate:
+        p = Path(source) if isinstance(source, (str, Path)) else None
+        if p and p.exists() and p.is_file():
+            content = p.read_text(encoding="utf-8")
+        else:
+            content = str(source)
+        data = json.loads(content)
+        return cls.from_dict(data)
+
+
+def parse_template_from_dict(data: Dict[str, Any]) -> Union[TabTemplate, ParallelTemplate, ParameterizedTemplate]:
+    """Auto-detect template type from dict and instantiate appropriate template class."""
+    if not isinstance(data, dict):
+        raise ValueError(f"Expected dict, got {type(data)}")
+
+    t_type = data.get("type")
+    if t_type == "TabTemplate":
+        return TabTemplate.from_dict(data)
+    if t_type == "ParallelTemplate":
+        return ParallelTemplate.from_dict(data)
+    if t_type == "ParameterizedTemplate":
+        return ParameterizedTemplate.from_dict(data)
+
+    if "templates" in data:
+        return ParallelTemplate.from_dict(data)
+    if "parameter_key" in data and "template" in data:
+        return ParameterizedTemplate.from_dict(data)
+    if "tab" in data:
+        return TabTemplate.from_dict(data)
+
+    raise ValueError(
+        "Could not determine template type from dictionary. "
+        "Ensure 'type' or 'tab'/'templates'/'parameter_key' field is present."
+    )
+
 
 
 @dataclass

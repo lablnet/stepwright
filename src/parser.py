@@ -7,7 +7,10 @@ from __future__ import annotations
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import asyncio
 
+import json
 import time
+from pathlib import Path
+
 from .step_types import (
     TabTemplate,
     ParallelTemplate,
@@ -16,11 +19,119 @@ from .step_types import (
     BaseStep,
     ExecutionMetrics,
     ProxyConfig,
+    parse_template_from_dict,
 )
 from .executor import execute_tab
 from .scraper import get_browser, get_device_preset, _shutdown_playwright
 from .validator import validate_template_format, validate_template_data
 from .handlers import apply_stealth_scripts
+
+
+def load_template(
+    source: Union[str, Path, dict, TabTemplate, ParallelTemplate, ParameterizedTemplate, List[Any]]
+) -> Union[TabTemplate, ParallelTemplate, ParameterizedTemplate, List[Union[TabTemplate, ParallelTemplate, ParameterizedTemplate]]]:
+    """
+    Load and parse a template from a JSON file path, JSON string, dictionary, or template instance.
+    Supports single template objects or a list of templates.
+
+    @since 2.0.0
+    """
+    if isinstance(source, (TabTemplate, ParallelTemplate, ParameterizedTemplate)):
+        return source
+
+    if isinstance(source, list):
+        return [load_template(item) for item in source]
+
+    if isinstance(source, dict):
+        return parse_template_from_dict(source)
+
+    if isinstance(source, (str, Path)):
+        p = Path(source) if isinstance(source, (str, Path)) else None
+        if p and p.exists() and p.is_file():
+            content = p.read_text(encoding="utf-8")
+        else:
+            content = str(source)
+        data = json.loads(content)
+        return load_template(data)
+
+    raise ValueError(f"Unsupported template source type: {type(source)}")
+
+
+def save_template(
+    template: Union[TabTemplate, ParallelTemplate, ParameterizedTemplate, BaseStep, List[Any]],
+    file_path: Union[str, Path],
+    indent: int = 2,
+) -> str:
+    """
+    Save a template or step object to a JSON file.
+    
+    @since 2.0.0
+    """
+    if isinstance(template, list):
+        serialized = [item.to_dict() if hasattr(item, "to_dict") else item for item in template]
+    elif hasattr(template, "to_dict"):
+        serialized = template.to_dict()
+    else:
+        serialized = template
+
+    json_str = json.dumps(serialized, indent=indent)
+    Path(file_path).write_text(json_str, encoding="utf-8")
+    return json_str
+
+
+def template_to_json(
+    template: Union[TabTemplate, ParallelTemplate, ParameterizedTemplate, BaseStep, List[Any]],
+    file_path: Optional[Union[str, Path]] = None,
+    indent: int = 2,
+) -> str:
+    """
+    Export a template object or list to a JSON string or file.
+    
+    @since 2.0.0
+    """
+    if file_path:
+        return save_template(template, file_path, indent=indent)
+    if isinstance(template, list):
+        serialized = [item.to_dict() if hasattr(item, "to_dict") else item for item in template]
+    elif hasattr(template, "to_dict"):
+        serialized = template.to_dict()
+    else:
+        serialized = template
+    return json.dumps(serialized, indent=indent)
+
+
+def template_from_json(
+    source: Union[str, Path]
+) -> Union[TabTemplate, ParallelTemplate, ParameterizedTemplate, List[Union[TabTemplate, ParallelTemplate, ParameterizedTemplate]]]:
+    """
+    Parse a template object or list from a JSON string or file.
+    
+    @since 2.0.0
+    """
+    return load_template(source)
+
+
+def _normalize_templates(
+    templates: Union[
+        str,
+        Path,
+        dict,
+        TabTemplate,
+        ParallelTemplate,
+        ParameterizedTemplate,
+        List[Union[str, Path, dict, TabTemplate, ParameterizedTemplate, ParallelTemplate]],
+    ]
+) -> List[Union[TabTemplate, ParallelTemplate, ParameterizedTemplate]]:
+    """
+    Normalize a list of templates into a list of TabTemplate, ParallelTemplate, or ParameterizedTemplate.
+    
+    @since 2.0.0
+    """
+    loaded = load_template(templates)
+    if isinstance(loaded, list):
+        return loaded
+    return [loaded]
+
 
 
 async def _build_context_args(options: RunOptions, tmpl: Optional[TabTemplate] = None) -> dict:
@@ -102,23 +213,40 @@ async def _build_context_args(options: RunOptions, tmpl: Optional[TabTemplate] =
 
 
 async def run_scraper(
-    templates: List[Union[TabTemplate, ParallelTemplate, ParameterizedTemplate]],
+    templates: Union[
+        str,
+        Path,
+        dict,
+        TabTemplate,
+        ParallelTemplate,
+        ParameterizedTemplate,
+        List[Union[str, Path, dict, TabTemplate, ParallelTemplate, ParameterizedTemplate]],
+    ],
     options: Optional[RunOptions] = None,
 ) -> List[Dict[str, Any]]:
     """
-    Execute a scraping template and return the gathered data.
+    Execute a scraping template (dataclass object, dict, or JSON file path) and return the gathered data.
     """
     results, _ = await run_scraper_with_metrics(templates, options)
     return results
 
 
 async def run_scraper_with_metrics(
-    templates: List[Union[TabTemplate, ParallelTemplate, ParameterizedTemplate]],
+    templates: Union[
+        str,
+        Path,
+        dict,
+        TabTemplate,
+        ParallelTemplate,
+        ParameterizedTemplate,
+        List[Union[str, Path, dict, TabTemplate, ParallelTemplate, ParameterizedTemplate]],
+    ],
     options: Optional[RunOptions] = None,
 ) -> Tuple[List[Dict[str, Any]], ExecutionMetrics]:
     """
     Execute a scraping template and return both the gathered data and ExecutionMetrics.
     """
+    norm_templates = _normalize_templates(templates)
     options = options or RunOptions()
     engine = options.engine or "chromium"
     browser = await get_browser((options.browser or {"headless": True}), engine=engine)
@@ -257,7 +385,7 @@ async def run_scraper_with_metrics(
         return results
 
     try:
-        tasks = [process_template(tmpl, context) for tmpl in templates]
+        tasks = [process_template(tmpl, context) for tmpl in norm_templates]
         final_results = await asyncio.gather(*tasks)
         for res_list in final_results:
             all_results.extend(res_list)

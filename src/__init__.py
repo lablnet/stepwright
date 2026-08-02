@@ -9,7 +9,15 @@ __author__ = "Muhammad Umer Farooq"
 __email__ = "umer@lablnet.com"
 
 # Import main API
-from .parser import run_scraper, run_scraper_with_callback, run_scraper_with_metrics
+from .parser import (
+    run_scraper,
+    run_scraper_with_callback,
+    run_scraper_with_metrics,
+    load_template,
+    save_template,
+    template_to_json,
+    template_from_json,
+)
 
 # Import validator functions
 from .validator import validate_template_format, validate_template_data
@@ -32,6 +40,7 @@ from .step_types import (
     ValidationResult,
     StepMetric,
     ExecutionMetrics,
+    parse_template_from_dict,
 )
 
 # Import proxy pool
@@ -100,6 +109,11 @@ __all__ = [
     "run_scraper",
     "run_scraper_with_callback",
     "run_scraper_with_metrics",
+    "load_template",
+    "save_template",
+    "template_to_json",
+    "template_from_json",
+    "parse_template_from_dict",
     # Validation
     "validate_template_format",
     "validate_template_data",

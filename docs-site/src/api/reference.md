@@ -4,10 +4,10 @@ Welcome to the StepWright API Reference. Here you'll find detailed parameter spe
 
 ## Core Engines
 
-StepWright primarily operates around a single function:
+StepWright primarily operates around a single function (accepting dataclass instances, dicts, or JSON file paths):
 ```python
 async def run_scraper(
-    templates: List[Union[TabTemplate, ParallelTemplate, ParameterizedTemplate]], 
+    templates: Union[str, Path, dict, TabTemplate, ParallelTemplate, ParameterizedTemplate, List[...]], 
     options: RunOptions = RunOptions()
 ) -> List[Dict[str, Any]]: ...
 ```
@@ -15,7 +15,7 @@ async def run_scraper(
 To stream results in real-time before the entire browser session closes, use the callback variant:
 ```python
 async def run_scraper_with_callback(
-    templates: List[Union[TabTemplate, ParallelTemplate, ParameterizedTemplate]],
+    templates: Union[str, Path, dict, TabTemplate, ParallelTemplate, ParameterizedTemplate, List[...]],
     on_result: Callable[[Dict[str, Any], int], Any],
     options: RunOptions = RunOptions()
 ) -> None: ...
@@ -24,9 +24,31 @@ async def run_scraper_with_callback(
 To collect execution metrics and timing stats alongside the scraped data:
 ```python
 async def run_scraper_with_metrics(
-    templates: List[Union[TabTemplate, ParallelTemplate, ParameterizedTemplate]],
+    templates: Union[str, Path, dict, TabTemplate, ParallelTemplate, ParameterizedTemplate, List[...]],
     options: RunOptions = RunOptions()
 ) -> Tuple[List[Dict[str, Any]], ExecutionMetrics]: ...
+```
+
+## JSON Template APIs
+
+Load, save, export, and convert templates between Python dataclasses, JSON files, strings, and dictionaries:
+
+```python
+def load_template(source: Union[str, Path, dict, TabTemplate, ...]) -> Union[TabTemplate, ParallelTemplate, ParameterizedTemplate, List[...]]: ...
+
+def save_template(template: Any, file_path: Union[str, Path], indent: int = 2) -> str: ...
+
+def template_to_json(template: Any, file_path: Optional[Union[str, Path]] = None, indent: int = 2) -> str: ...
+
+def template_from_json(source: Union[str, Path]) -> Any: ...
+```
+
+Template dataclasses (`TabTemplate`, `ParallelTemplate`, `ParameterizedTemplate`, `BaseStep`, `PaginationConfig`, `ProxyConfig`) also provide instance/class methods:
+```python
+tmpl.to_dict() -> dict
+tmpl.to_json(file_path=None) -> str
+TabTemplate.from_dict(d) -> TabTemplate
+TabTemplate.from_json(source) -> TabTemplate
 ```
 
 ## Validation APIs

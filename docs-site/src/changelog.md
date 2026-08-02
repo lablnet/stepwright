@@ -61,6 +61,14 @@ StepWright 2.0.0 is a milestone major release that elevates StepWright into an e
 
 ---
 
+### 📄 8. Native JSON Template Export, Loading & Direct Execution
+- **JSON Serialization (`to_dict` & `to_json`)**: Dataclasses (`TabTemplate`, `ParallelTemplate`, `ParameterizedTemplate`, `BaseStep`, `PaginationConfig`, `ProxyConfig`) now include native `to_dict()` and `to_json()` methods to export declarative scraper definitions.
+- **JSON Deserialization (`from_dict` & `from_json`)**: Reconstruct dataclass instances from dictionaries or JSON strings/files using `TabTemplate.from_dict()`, `TabTemplate.from_json()`, or auto-detect template types using `parse_template_from_dict()`.
+- **Top-Level Template I/O (`load_template` & `save_template`)**: Convenient top-level functions to load templates from JSON files, JSON strings, or dictionaries, and save templates to disk (`save_template(template, "my_template.json")`).
+- **Direct JSON File Scraping Execution (`run_scraper`)**: `run_scraper()` natively accepts JSON file paths (e.g. `run_scraper("my_template.json")`), JSON strings, or dictionaries alongside standard python dataclass instances.
+
+---
+
 ## 🚀 Version 1.1.0 - The Concurrency & Data Flow Update
 
 StepWright 1.1.0 is a massive update that evolves the library from a sequential task runner into a high-performance concurrent scraping engine. This release introduces parallel execution, parameterized templates, and advanced data flow capabilities, allowing you to treat web scraping like a standard data engineering pipeline.
