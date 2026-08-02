@@ -22,6 +22,12 @@ def test_page_html_path(test_data_dir):
     return test_data_dir / "test_page.html"
 
 
+@pytest.fixture
+def test_page_url(test_page_html_path):
+    """Return the local test page as a browser-loadable URL."""
+    return f"file://{test_page_html_path}"
+
+
 # Configure pytest-asyncio
 def pytest_configure(config):
     """Configure pytest"""

@@ -6,7 +6,6 @@ import pytest
 import sys
 import json
 from unittest.mock import AsyncMock, MagicMock
-from pathlib import Path
 
 # Import from the installed package
 from stepwright import (
@@ -20,13 +19,6 @@ from stepwright import (
     ScrollConfig,
 )
 import stepwright.parser as parser_module
-
-
-@pytest.fixture
-def test_page_url():
-    """Get test page URL"""
-    test_page_path = Path(__file__).parent / "test_page.html"
-    return f"file://{test_page_path}"
 
 
 class TestRunScraper:
@@ -506,5 +498,4 @@ class TestBuildContextArgs:
         assert ctx["proxy"]["server"] == "http://p3.com:8080"
         assert ctx["extra_http_headers"] == {"X-Test": "HeaderVal"}
         assert ctx["has_touch"] is True
-
 

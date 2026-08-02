@@ -5,7 +5,6 @@
 import pytest
 import sys
 from unittest.mock import AsyncMock, MagicMock
-from pathlib import Path
 
 # Import from the installed package
 from stepwright import (
@@ -36,13 +35,6 @@ async def page(browser):
     page = await browser.new_page()
     yield page
     await page.close()
-
-
-@pytest.fixture
-def test_page_url():
-    """Get test page URL"""
-    test_page_path = Path(__file__).parent / "test_page.html"
-    return f"file://{test_page_path}"
 
 
 class TestGetBrowser:
