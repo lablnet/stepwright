@@ -4,8 +4,8 @@ import csv
 import pathlib
 import pytest
 
-from src.parser import run_scraper
-from src.step_types import (
+from stepwright.parser import run_scraper
+from stepwright.step_types import (
     BaseStep,
     TabTemplate,
     ParallelTemplate,

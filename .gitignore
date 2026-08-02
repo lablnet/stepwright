@@ -141,3 +141,4 @@ integration-output/
 /test_env
 *.db
 *.sqlite
+mutants/
