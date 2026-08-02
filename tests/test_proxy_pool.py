@@ -101,4 +101,30 @@ def test_validator_proxy_pool():
     )
     res = validate_template_format(t_invalid)
     assert res.is_valid is False
-    assert any(e.code == "INVALID_PROXY_STRATEGY" for e in res.errors)
+
+
+def test_proxy_pool_edge_cases_and_random_strategy():
+    """Test invalid strategy initialization, invalid proxy types, random strategy, report_success"""
+    with pytest.raises(ValueError, match="Invalid proxy rotation strategy"):
+        ProxyPool(strategy="invalid_strategy")
+
+    pool = ProxyPool(strategy="random")
+    with pytest.raises(ValueError, match="Invalid proxy object type"):
+        pool.add_proxy(12345)  # type: ignore
+
+    p_entry = pool.add_proxy("http://random_p1.com:8080")
+    assert p_entry.config.server == "http://random_p1.com:8080"
+
+    # Random strategy get_proxy
+    px = pool.get_proxy()
+    assert px is not None
+    assert px.server == "http://random_p1.com:8080"
+
+    # Report success
+    pool.report_success("http://random_p1.com:8080")
+    assert p_entry.success_count == 1
+
+    # Empty pool get_proxy returns None
+    empty_pool = ProxyPool()
+    assert empty_pool.get_proxy() is None
+

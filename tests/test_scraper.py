@@ -4,6 +4,7 @@
 
 import pytest
 import sys
+from unittest.mock import AsyncMock, MagicMock
 from pathlib import Path
 
 # Import from the installed package
@@ -46,6 +47,17 @@ def test_page_url():
 
 class TestGetBrowser:
     """Tests for getBrowser function"""
+
+    @pytest.mark.asyncio
+    async def test_get_browser_selects_firefox_and_webkit(self, monkeypatch):
+        fake_pw = MagicMock()
+        fake_pw.firefox.launch = AsyncMock(return_value="firefox")
+        fake_pw.webkit.launch = AsyncMock(return_value="webkit")
+        monkeypatch.setattr("stepwright.scraper._get_pw", AsyncMock(return_value=fake_pw))
+        assert await get_browser(engine="firefox") == "firefox"
+        assert await get_browser(engine="webkit") == "webkit"
+        fake_pw.firefox.launch.assert_awaited_once_with()
+        fake_pw.webkit.launch.assert_awaited_once_with()
 
     @pytest.mark.asyncio
     async def test_create_browser_instance(self):
@@ -276,3 +288,15 @@ class TestGetData:
         end_time = time.time()
         elapsed = (end_time - start_time) * 1000
         assert elapsed >= 100
+
+    @pytest.mark.asyncio
+    async def test_get_attribute_data(self, page, test_page_url):
+        """Should get attribute data via xpath slash syntax and attribute_name parameter"""
+        await navigate(page, test_page_url)
+        val_xpath = await get_data(page, "xpath", '//a[@href="https://example.com/article1"]/@href', "attribute")
+        assert val_xpath is not None
+        val_param = await get_data(page, "xpath", '//a[@href="https://example.com/article1"]', "attribute", attribute_name="href")
+        assert val_param is not None
+
+        with pytest.raises(ValueError, match="Attribute name is required"):
+            await get_data(page, "xpath", '//a[@href="https://example.com/article1"]', "attribute")

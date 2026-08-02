@@ -4,6 +4,8 @@
 
 import pytest
 import sys
+import json
+from unittest.mock import AsyncMock, MagicMock
 from pathlib import Path
 
 # Import from the installed package
@@ -17,6 +19,7 @@ from stepwright import (
     NextButtonConfig,
     ScrollConfig,
 )
+import stepwright.parser as parser_module
 
 
 @pytest.fixture
@@ -62,6 +65,50 @@ class TestRunScraper:
         assert len(results) == 1
         assert results[0]["title"] == "StepWright Test Page"
         assert results[0]["subtitle"] == "A comprehensive test page for web scraping functionality"
+
+    def test_template_serialization_and_invalid_sources(self, tmp_path):
+        step = BaseStep(id="plain", action="navigate", value="https://example.com")
+        plain_path = tmp_path / "plain.json"
+        saved = parser_module.save_template({"raw": True}, plain_path)
+        assert json.loads(saved) == {"raw": True}
+        assert json.loads(parser_module.template_to_json([step, {"raw": True}]))[1] == {"raw": True}
+        assert parser_module.load_template(json.dumps({"type": "tab", "tab": "raw", "steps": []})).tab == "raw"
+        with pytest.raises(ValueError):
+            parser_module.load_template(42)
+
+    @pytest.mark.asyncio
+    async def test_parameterized_template_injects_all_step_groups(self, monkeypatch):
+        calls = []
+
+        async def fake_execute(page, tmpl, *args, **kwargs):
+            calls.append(tmpl)
+            return [{"ok": True}]
+
+        browser = MagicMock()
+        browser.close = AsyncMock()
+        context = MagicMock()
+        page = MagicMock()
+        browser.new_context = AsyncMock(return_value=context)
+        context.new_page = AsyncMock(return_value=page)
+        page.close = AsyncMock()
+        context.close = AsyncMock()
+        monkeypatch.setattr(parser_module, "get_browser", AsyncMock(return_value=browser))
+        monkeypatch.setattr(parser_module, "execute_tab", fake_execute)
+        monkeypatch.setattr(parser_module, "_shutdown_playwright", AsyncMock())
+
+        template = TabTemplate(
+            tab="tab-{{value}}",
+            steps=[BaseStep(id="s", action="input", value="{{value}}")],
+            initSteps=[BaseStep(id="i", action="input", value="{{value}}")],
+            perPageSteps=[BaseStep(id="p", action="input", value="{{value}}")],
+        )
+        wrapped = parser_module.ParameterizedTemplate(template=template, parameter_key="value", values=["x"], max_concurrency=1)
+        result = await parser_module.run_scraper([wrapped], options=RunOptions())
+        assert result == [{"ok": True}]
+        assert calls[0].tab == "tab-x"
+        assert calls[0].steps[0].value == "x"
+        assert calls[0].initSteps[0].value == "x"
+        assert calls[0].perPageSteps[0].value == "x"
 
     @pytest.mark.asyncio
     async def test_form_input_and_submission(self, test_page_url):
@@ -426,4 +473,38 @@ class TestBuildContextArgs:
         assert ctx["geolocation"] == {"latitude": 48.8566, "longitude": 2.3522}
         assert ctx["permissions"] == ["geolocation"]
         assert ctx["is_mobile"] is False
+
+    @pytest.mark.asyncio
+    async def test_build_context_args_proxy_config(self):
+        from stepwright.parser import _build_context_args
+        from stepwright.step_types import ProxyConfig
+
+        p_cfg = ProxyConfig(server="http://proxy.example.com:8080", username="user", password="pass", bypass=".example.com")
+        options = RunOptions(proxy=p_cfg)
+        ctx = await _build_context_args(options, None)
+        assert "proxy" in ctx
+        assert ctx["proxy"]["server"] == "http://proxy.example.com:8080"
+        assert ctx["proxy"]["username"] == "user"
+        assert ctx["proxy"]["password"] == "pass"
+        assert ctx["proxy"]["bypass"] == ".example.com"
+
+    @pytest.mark.asyncio
+    async def test_build_context_args_proxy_pool_and_extra_headers(self):
+        from stepwright.parser import _build_context_args
+        from stepwright.proxy_pool import ProxyPool
+
+        pool = ProxyPool(proxies=["http://p1.com:8080", "http://p2.com:8080"])
+        options = RunOptions(
+            proxy_pool=pool,
+            extra_http_headers={"X-Test": "HeaderVal"},
+            has_touch=True
+        )
+        tmpl = TabTemplate(tab="tab_pool", proxy_pool=["http://p3.com:8080"])
+
+        ctx = await _build_context_args(options, tmpl)
+        assert "proxy" in ctx
+        assert ctx["proxy"]["server"] == "http://p3.com:8080"
+        assert ctx["extra_http_headers"] == {"X-Test": "HeaderVal"}
+        assert ctx["has_touch"] is True
+
 

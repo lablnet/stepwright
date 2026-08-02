@@ -177,3 +177,25 @@ async def test_run_scraper_with_json_file(tmp_path: Path):
     results = await run_scraper(str(json_file))
     assert len(results) == 1
     assert results[0]["title"] == "Hello StepWright JSON"
+
+
+def test_step_types_to_json_and_from_json_direct(tmp_path: Path):
+    """Test direct to_json and from_json methods on step_types models"""
+    t1 = TabTemplate(tab="direct_t1", steps=[BaseStep(id="s1", action="navigate", value="https://example.com")])
+    json_path1 = tmp_path / "t1.json"
+    t1.to_json(file_path=json_path1)
+    restored_t1 = TabTemplate.from_json(json_path1)
+    assert restored_t1.tab == "direct_t1"
+
+    p1 = ParallelTemplate(templates=[t1], max_concurrency=2)
+    json_path2 = tmp_path / "p1.json"
+    p1.to_json(file_path=json_path2)
+    restored_p1 = ParallelTemplate.from_json(json_path2)
+    assert restored_p1.max_concurrency == 2
+
+    pm1 = ParameterizedTemplate(template=t1, parameter_key="k", values=["1", "2"])
+    json_path3 = tmp_path / "pm1.json"
+    pm1.to_json(file_path=json_path3)
+    restored_pm1 = ParameterizedTemplate.from_json(json_path3)
+    assert restored_pm1.parameter_key == "k"
+

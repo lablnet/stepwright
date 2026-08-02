@@ -206,3 +206,97 @@ def test_validator_edge_cases():
     assert res_steps.is_valid is False
     assert len(res_steps.errors) >= 5
 
+
+def test_validator_action_validation_branches():
+    """Test validator checks for missing object/value across various step actions"""
+    tab = TabTemplate(
+        tab="v_actions",
+        steps=[
+            BaseStep(id="a1", action="input", object_type="id"),  # missing object & value
+            BaseStep(id="a2", action="navigate"),  # missing value
+            BaseStep(id="a3", action="savePDF"),  # missing value
+            BaseStep(id="a4", action="writeData"),  # missing value
+            BaseStep(id="a5", action="readData"),  # missing value
+            BaseStep(id="a6", action="custom"),  # missing callback
+        ]
+    )
+    res = validate_template_format(tab)
+    assert res.is_valid is False
+    codes = [e.code for e in res.errors]
+    assert "MISSING_REQUIRED_OBJECT" in codes
+    assert "MISSING_REQUIRED_VALUE" in codes
+    assert "MISSING_CALLBACK" in codes
+
+
+def test_validator_proxy_next_button_and_driver_branches():
+    """Test validator checks for invalid proxy server, nextButton invalid selector type, invalid driver, and parallel templates"""
+    from stepwright.step_types import PaginationConfig, ProxyConfig, ParallelTemplate, ParameterizedTemplate
+    from stepwright.validator import validate_template_data
+
+
+    bad_tab = TabTemplate(
+        tab="v_proxy_btn",
+        proxy=ProxyConfig(server=""),  # empty server
+        pagination=PaginationConfig(
+            strategy="next",
+            nextButton=BaseStep(id="nb", action="click", object_type="invalid_sel_type", object="btn")
+        ),
+        driver=12345,  # invalid driver type
+        steps=[]  # empty steps warning
+    )
+    res = validate_template_format(bad_tab)
+    assert res.is_valid is False
+    codes = [e.code for e in res.errors]
+    assert "INVALID_PROXY_SERVER" in codes
+
+    # Test validate_template_data with ParallelTemplate and ParameterizedTemplate
+    parallel_tmpl = ParallelTemplate(
+        templates=[
+            TabTemplate(tab="p1", steps=[BaseStep(id="d1", action="data", object="#item", key="k1")]),
+            TabTemplate(tab="p2", steps=[BaseStep(id="d2", action="data", object="#item", key="k2")])
+        ]
+    )
+    res_par = validate_template_data(parallel_tmpl, ["k1", "k2"])
+    assert res_par.is_valid is True
+
+    param_tmpl = ParameterizedTemplate(
+        template=TabTemplate(tab="pm1", steps=[BaseStep(id="d3", action="data", object="#item", key="k3")]),
+        parameter_key="keyword",
+        values=["v1"]
+    )
+    res_param = validate_template_data(param_tmpl, ["k3"])
+    assert res_param.is_valid is True
+
+
+    assert "INVALID_SELECTOR_TYPE" in codes
+    assert "INVALID_DRIVER" in codes
+
+    # ParallelTemplate invalid concurrency and empty templates
+    bad_parallel = ParallelTemplate(templates=[], max_concurrency=-1)
+    res_p = validate_template_format(bad_parallel)
+    assert res_p.is_valid is False
+    p_codes = [e.code for e in res_p.errors]
+    assert "INVALID_CONCURRENCY" in p_codes
+    assert "EMPTY_PARALLEL_TEMPLATES" in p_codes
+
+    # ParameterizedTemplate invalid concurrency and missing key
+    bad_param = ParameterizedTemplate(template=None, parameter_key="", values=[], max_concurrency=0)
+    res_pm = validate_template_format(bad_param)
+    assert res_pm.is_valid is False
+    pm_codes = [e.code for e in res_pm.errors]
+    assert "MISSING_BASE_TEMPLATE" in pm_codes
+
+    # validate_template_data missing expected keys check
+    data_tab = TabTemplate(
+        tab="v_data",
+        steps=[BaseStep(id="s1", action="navigate", value="https://example.com")]
+    )
+    res_data = validate_template_data(data_tab, expected_keys=["missing_output_key"])
+    assert res_data.is_valid is False
+    assert any(e.code == "MISSING_EXPECTED_DATA_KEY" for e in res_data.errors)
+
+
+
+
+
+

@@ -301,3 +301,87 @@ async def test_playwright_driver_mock_calls():
     await pw_drv.shutdown()
 
 
+def test_driver_init_unsupported_driver():
+    """Test get_driver and set_active_driver with unsupported driver names"""
+    import pytest
+    from stepwright.drivers import get_driver, set_active_driver
+
+    with pytest.raises(ValueError, match="Unsupported driver"):
+        get_driver("unsupported_engine")
+
+    with pytest.raises(ValueError, match="Unsupported driver"):
+        set_active_driver("unsupported_engine")
+
+
+@pytest.mark.asyncio
+async def test_playwright_driver_launch_engines_mock():
+    """Test PlaywrightDriver launch options for firefox and webkit"""
+    from stepwright.drivers.playwright_driver import PlaywrightDriver
+    from unittest.mock import AsyncMock, MagicMock
+
+    pw_drv = PlaywrightDriver()
+
+    mock_pw = AsyncMock()
+    mock_chromium = AsyncMock()
+    mock_firefox = AsyncMock()
+    mock_webkit = AsyncMock()
+
+    mock_pw.chromium = mock_chromium
+    mock_pw.firefox = mock_firefox
+    mock_pw.webkit = mock_webkit
+
+    pw_drv._get_pw = AsyncMock(return_value=mock_pw)
+
+    # Launch firefox engine
+    await pw_drv.launch({"engine": "firefox", "headless": True})
+    mock_firefox.launch.assert_called_once_with(headless=True)
+
+    # Launch webkit engine
+    await pw_drv.launch({"engine": "webkit", "headless": True})
+    mock_webkit.launch.assert_called_once_with(headless=True)
+
+    # Launch chromium default engine
+    await pw_drv.launch({"engine": "chromium", "headless": True})
+    mock_chromium.launch.assert_called_once_with(headless=True)
+
+
+@pytest.mark.asyncio
+async def test_playwright_driver_get_pw_and_shutdown_coverage():
+    """Test _get_pw event loop reset, new_page(None) auto-context creation, and shutdown exception safety"""
+    from stepwright.drivers.playwright_driver import PlaywrightDriver
+    from unittest.mock import AsyncMock, MagicMock, patch
+    import asyncio
+
+
+    drv = PlaywrightDriver()
+
+    # Event loop reset branch
+    mock_pw = AsyncMock()
+    drv._pw = mock_pw
+    drv._pw_loop = MagicMock()
+    drv._pw_loop.is_closed.return_value = True
+
+    # Calling _get_pw should attempt to stop previous pw instance
+    with patch("stepwright.drivers.playwright_driver.async_playwright") as mock_apw:
+        mock_apw_ctx = AsyncMock()
+        mock_apw.return_value = mock_apw_ctx
+        mock_apw_ctx.start.return_value = AsyncMock()
+        await drv._get_pw()
+        mock_pw.stop.assert_called_once()
+
+    # new_page(None) auto context creation
+    mock_ctx = AsyncMock()
+    drv.new_context = AsyncMock(return_value=mock_ctx)
+    await drv.new_page(None)
+    drv.new_context.assert_called_once()
+
+    # shutdown with exception in _pw.stop()
+    drv._pw = AsyncMock()
+    drv._pw.stop.side_effect = Exception("Stop error")
+    drv.close_browser = AsyncMock()
+    await drv.shutdown()
+    assert drv._pw is None
+
+
+
+

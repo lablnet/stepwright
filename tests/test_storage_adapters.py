@@ -3,6 +3,8 @@
 
 import os
 import sqlite3
+import sys
+import types
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -342,3 +344,268 @@ def test_kafka_and_es_and_azure_close_and_options():
     az_adp = AzureBlobAdapter(container_name="c")
     az_adp.close()
 
+
+def test_adapters_init_and_base_adapter_coverage():
+    """Test registry validation and base adapter default methods"""
+    import pytest
+    from stepwright.adapters import register_adapter, get_adapter
+    from stepwright.adapters.base_adapter import BaseStorageAdapter
+
+    # Register invalid class raises ValueError
+    class NonAdapter:
+        pass
+
+    with pytest.raises(ValueError, match="must subclass BaseStorageAdapter"):
+        register_adapter("invalid", NonAdapter)  # type: ignore
+
+    # Unknown adapter name
+    with pytest.raises(ValueError, match="Unknown storage adapter"):
+        get_adapter("unknown_adapter_xyz")
+
+    # Invalid adapter spec type
+    with pytest.raises(ValueError, match="Invalid storage adapter specification"):
+        get_adapter(12345)  # type: ignore
+
+    class MinimalAdapter(BaseStorageAdapter):
+        def connect(self):
+            pass
+        def write(self, data, options=None):
+            return True
+        def close(self):
+            pass
+
+    adapter = MinimalAdapter()
+    adapter.connect()
+    assert adapter.write({"test": 1}) is True
+    adapter.close()
+
+
+def test_db_and_cloud_active_connections_mock():
+    """Test active connection write and close paths for MySQL, Postgres, Mongo, DynamoDB, S3, GCS, RabbitMQ"""
+    # MySQL with active conn mock
+    my_adp = MySQLAdapter()
+    mock_conn = MagicMock()
+    mock_cur = MagicMock()
+    mock_conn.cursor.return_value.__enter__.return_value = mock_cur
+    my_adp.conn = mock_conn
+    assert my_adp.write([{"col1": "val1", "col2": [1, 2]}]) is True
+    my_adp.close()
+    mock_conn.close.assert_called_once()
+
+    # Postgres with active conn mock
+    pg_adp = PostgreSQLAdapter()
+    mock_pg_conn = MagicMock()
+    mock_pg_cur = MagicMock()
+    mock_pg_conn.cursor.return_value.__enter__.return_value = mock_pg_cur
+    pg_adp.conn = mock_pg_conn
+    assert pg_adp.write([{"col1": "val1"}]) is True
+    pg_adp.close()
+    mock_pg_conn.close.assert_called_once()
+
+    # DynamoDB with active client & table mock
+    dyn_adp = DynamoDBAdapter()
+    mock_table = MagicMock()
+    mock_batch = MagicMock()
+    mock_table.batch_writer.return_value.__enter__.return_value = mock_batch
+    dyn_adp.table = mock_table
+    assert dyn_adp.write([{"id": "1", "data": "test"}]) is True
+    dyn_adp.close()
+
+
+    # S3 close with active client
+    s3_adp = S3StorageAdapter()
+    mock_s3 = MagicMock()
+    s3_adp.s3_client = mock_s3
+    s3_adp.close()
+
+    # GCS close with active client
+    gcs_adp = GCSStorageAdapter()
+    mock_gcs = MagicMock()
+    gcs_adp.gcs_client = mock_gcs
+    gcs_adp.close()
+
+    # RabbitMQ close with active connection
+    rmq_adp = RabbitMQAdapter()
+    mock_rmq_conn = MagicMock()
+    rmq_adp.connection = mock_rmq_conn
+    rmq_adp.close()
+    mock_rmq_conn.close.assert_called_once()
+
+
+def test_adapters_import_error_fallbacks_and_exceptions(monkeypatch):
+    """Test connect() ImportError fallbacks and close() exception handling across all adapters"""
+    import builtins
+    real_import = builtins.__import__
+
+    # Function to simulate missing libraries
+    def mock_import(name, *args, **kwargs):
+        if name in ("azure.storage.blob", "google.cloud", "pymongo", "pymysql", "psycopg2", "pika", "kafka"):
+            raise ImportError(f"No module named '{name}'")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", mock_import)
+
+    # Cloud adapters ImportError
+    az = AzureBlobAdapter()
+    az.connect()
+    assert az.blob_service_client is None
+    assert az.write({"a": 1}) is True
+
+    gcs = GCSStorageAdapter()
+    gcs.connect()
+    assert gcs.client is None
+    assert gcs.write({"a": 1}) is True
+
+
+    # Database adapters ImportError
+    mongo = MongoDBAdapter()
+    mongo.connect()
+    assert mongo.client is None
+    assert mongo.write({"a": 1}) is True
+
+    mysql = MySQLAdapter()
+    mysql.connect()
+    assert mysql.conn is None
+    assert mysql.write({"a": 1}) is True
+
+    pg = PostgreSQLAdapter()
+    pg.connect()
+    assert pg.conn is None
+    assert pg.write({"a": 1}) is True
+
+    # Queue adapters ImportError
+    rmq = RabbitMQAdapter()
+    rmq.connect()
+    assert rmq.connection is None
+    assert rmq.write({"a": 1}) is True
+
+    kafka = KafkaAdapter()
+    kafka.connect()
+    assert kafka.producer is None
+    assert kafka.write({"a": 1}) is True
+
+    # Close with exception in conn.close()
+    mysql_err = MySQLAdapter()
+    mock_err_conn = MagicMock()
+    mock_err_conn.close.side_effect = Exception("Close failed")
+    mysql_err.conn = mock_err_conn
+    mysql_err.close()
+
+    pg_err = PostgreSQLAdapter()
+    mock_err_pg = MagicMock()
+    mock_err_pg.close.side_effect = Exception("Close failed")
+    pg_err.conn = mock_err_pg
+    pg_err.close()
+
+    rmq_err = RabbitMQAdapter()
+    mock_err_rmq = MagicMock()
+    mock_err_rmq.close.side_effect = Exception("Close failed")
+    rmq_err.connection = mock_err_rmq
+    rmq_err.close()
+
+
+def test_adapter_successful_connect_paths_with_fake_modules(monkeypatch):
+    """Cover optional dependency success branches without requiring external services."""
+    # boto3 for S3 and DynamoDB
+    boto3 = types.ModuleType("boto3")
+    boto3_client = MagicMock()
+    dynamo_table = MagicMock()
+    dynamo_resource = MagicMock()
+    dynamo_resource.Table.return_value = dynamo_table
+    boto3.client = MagicMock(return_value=boto3_client)
+    boto3.resource = MagicMock(return_value=dynamo_resource)
+    monkeypatch.setitem(sys.modules, "boto3", boto3)
+
+    s3 = S3StorageAdapter(bucket="b")
+    s3.connect()
+    assert s3.s3_client is boto3_client
+    s3.write({"x": 1})
+    boto3_client.put_object.assert_called_once()
+
+    dyn = DynamoDBAdapter(table_name="t")
+    dyn.connect()
+    assert dyn.table is dynamo_table
+    dyn.write(["primitive"])
+    dynamo_table.batch_writer.return_value.__enter__.return_value.put_item.assert_called_with(Item={"value": "primitive"})
+
+    # Azure Blob from nested modules
+    azure = types.ModuleType("azure")
+    azure_storage = types.ModuleType("azure.storage")
+    azure_blob = types.ModuleType("azure.storage.blob")
+    blob_service = MagicMock()
+    blob_service.get_container_client.return_value = MagicMock()
+    azure_blob.BlobServiceClient = MagicMock()
+    azure_blob.BlobServiceClient.from_connection_string = MagicMock(return_value=blob_service)
+    monkeypatch.setitem(sys.modules, "azure", azure)
+    monkeypatch.setitem(sys.modules, "azure.storage", azure_storage)
+    monkeypatch.setitem(sys.modules, "azure.storage.blob", azure_blob)
+
+    az = AzureBlobAdapter(container_name="c", connection_string="UseDevelopmentStorage=true")
+    az.connect()
+    assert az.container_client is blob_service.get_container_client.return_value
+
+    # Google Cloud Storage nested import
+    google = types.ModuleType("google")
+    google_cloud = types.ModuleType("google.cloud")
+    storage = types.ModuleType("google.cloud.storage")
+    gcs_client = MagicMock()
+    storage.Client = MagicMock(return_value=gcs_client)
+    google_cloud.storage = storage
+    monkeypatch.setitem(sys.modules, "google", google)
+    monkeypatch.setitem(sys.modules, "google.cloud", google_cloud)
+    monkeypatch.setitem(sys.modules, "google.cloud.storage", storage)
+
+    gcs = GCSStorageAdapter(bucket="bucket")
+    gcs.connect()
+    assert gcs.bucket is gcs_client.bucket.return_value
+
+    # MongoDB
+    pymongo = types.ModuleType("pymongo")
+    mongo_client = MagicMock()
+    pymongo.MongoClient = MagicMock(return_value=mongo_client)
+    monkeypatch.setitem(sys.modules, "pymongo", pymongo)
+
+    mongo = MongoDBAdapter(database="db", collection="col")
+    mongo.connect()
+    assert mongo.collection is mongo_client.__getitem__.return_value.__getitem__.return_value
+    mongo.write(["value"])
+    mongo.collection.insert_many.assert_called_with([{"value": "value"}])
+
+    # Elasticsearch
+    elasticsearch = types.ModuleType("elasticsearch")
+    es_client = MagicMock()
+    elasticsearch.Elasticsearch = MagicMock(return_value=es_client)
+    monkeypatch.setitem(sys.modules, "elasticsearch", elasticsearch)
+
+    es = ElasticsearchAdapter(index="idx")
+    es.connect()
+    assert es.client is es_client
+    es.write(["doc"])
+    es_client.index.assert_called_with(index="idx", body={"value": "doc"})
+
+    # RabbitMQ
+    pika = types.ModuleType("pika")
+    rmq_conn = MagicMock()
+    pika.BlockingConnection = MagicMock(return_value=rmq_conn)
+    pika.ConnectionParameters = MagicMock(return_value="params")
+    pika.BasicProperties = MagicMock(return_value="props")
+    monkeypatch.setitem(sys.modules, "pika", pika)
+
+    rmq = RabbitMQAdapter(queue_name="q")
+    rmq.connect()
+    assert rmq.channel is rmq_conn.channel.return_value
+    rmq.write({"a": 1})
+    rmq.channel.queue_declare.assert_called_with(queue="q", durable=True)
+    rmq.channel.basic_publish.assert_called_once()
+
+    # Kafka
+    kafka_mod = types.ModuleType("kafka")
+    producer = MagicMock()
+    kafka_mod.KafkaProducer = MagicMock(return_value=producer)
+    monkeypatch.setitem(sys.modules, "kafka", kafka_mod)
+
+    kafka = KafkaAdapter(topic="topic", bootstrap_servers="host:9092")
+    kafka.connect()
+    assert kafka.producer is producer
+    kafka.write({"event": 1})
+    producer.send.assert_called_with("topic", {"event": 1})

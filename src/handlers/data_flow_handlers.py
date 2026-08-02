@@ -12,6 +12,23 @@ from ..step_types import BaseStep
 from ..helpers import replace_data_placeholders, maybe_await
 
 
+def _close_openpyxl_workbook(wb: Any) -> None:
+    """Safely close openpyxl workbook, cleaning up archive handle if present.
+
+       @since 2.0.0
+    """
+    archive = getattr(wb, "_archive", None)
+    if archive is not None:
+        try:
+            archive.close()
+        except Exception:
+            pass
+    try:
+        wb.close()
+    except Exception:
+        pass
+
+
 async def _handle_read_data(
     page: Page,
     step: BaseStep,
@@ -46,13 +63,16 @@ async def _handle_read_data(
             try:
                 import openpyxl
 
-                wb = openpyxl.load_workbook(file_path)
+                with open(file_path, "rb") as workbook_file:
+                    wb = openpyxl.load_workbook(workbook_file)
                 sheet = wb.active
                 data = []
                 headers = [cell.value for cell in sheet[1]]
                 for row in sheet.iter_rows(min_row=2, values_only=True):
                     data.append(dict(zip(headers, row)))
+                _close_openpyxl_workbook(wb)
             except ImportError:
+
                 raise ImportError(
                     "openpyxl is required for Excel support. Install with 'pip install openpyxl'"
                 )
@@ -135,7 +155,8 @@ async def _handle_write_data(
                     data_to_write = [data_to_write]
 
                 if file_path.exists():
-                    wb = openpyxl.load_workbook(file_path)
+                    with open(file_path, "rb") as workbook_file:
+                        wb = openpyxl.load_workbook(workbook_file)
                     sheet = wb.active
                 else:
                     wb = Workbook()
@@ -146,7 +167,9 @@ async def _handle_write_data(
                 for item in data_to_write:
                     sheet.append(list(item.values()))
                 wb.save(file_path)
+                _close_openpyxl_workbook(wb)
             except ImportError:
+
                 raise ImportError(
                     "openpyxl is required for Excel support. Install with 'pip install openpyxl'"
                 )
